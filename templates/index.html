@@ -5,41 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>يانصيب شام كاش</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0a0f1f;
-            color: #eee;
-            text-align: center;
-            padding: 20px;
-        }
-        .card {
-            background: #1a2745;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 15px auto;
-            max-width: 350px;
-        }
-        input {
-            display: block;
-            width: 90%;
-            margin: 10px auto;
-            padding: 12px;
-            border-radius: 10px;
-            border: none;
-            font-size: 16px;
-        }
-        button {
-            background: #e94560;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 18px;
-            margin: 10px;
-            cursor: pointer;
-            width: 90%;
-        }
-        button:active { transform: scale(0.95); }
+        body { font-family: Arial, sans-serif; background: #0a0f1f; color: #eee; text-align: center; padding: 20px; }
+        .card { background: #1a2745; padding: 20px; border-radius: 15px; margin: 15px auto; max-width: 350px; }
+        input { display: block; width: 90%; margin: 10px auto; padding: 12px; border-radius: 10px; border: none; font-size: 16px; }
+        button { background: #e94560; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 18px; margin: 10px; cursor: pointer; width: 90%; }
         .hidden { display: none; }
         h1 { color: #f0c27a; margin: 20px 0; }
         .info { background: #0f3460; padding: 10px; border-radius: 10px; margin: 10px 0; }
@@ -56,7 +25,6 @@
             <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
         </div>
     </div>
-
     <div id="mainSection" class="hidden">
         <h1>🎰 يانصيب شام كاش</h1>
         <div class="card">
@@ -66,21 +34,13 @@
             <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
         </div>
     </div>
-
     <script>
         async function apiFetch(url, method = 'GET', body = null) {
-            try {
-                const options = { method, headers: { 'Content-Type': 'application/json' } };
-                if (body) options.body = JSON.stringify(body);
-                const res = await fetch(url, options);
-                const data = await res.json();
-                return data;
-            } catch (e) {
-                alert('خطأ في الاتصال بالخادم');
-                return { error: 'فشل الاتصال' };
-            }
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            const res = await fetch(url, options);
+            return await res.json();
         }
-
         async function fetchState() {
             const data = await apiFetch('/api/state');
             if (data.logged_in) {
@@ -93,53 +53,28 @@
                 document.getElementById('mainSection').classList.add('hidden');
             }
         }
-
         async function login() {
             const phone = document.getElementById('phoneInput').value.trim();
             const password = document.getElementById('passwordInput').value.trim();
-            if (!phone || !password) {
-                alert('الرجاء إدخال رقم الهاتف وكلمة المرور');
-                return;
-            }
+            if (!phone || !password) return alert('املأ الحقول');
             const data = await apiFetch('/api/login', 'POST', { phone, password });
-            if (data.error) {
-                alert('❌ ' + data.error);
-            } else {
-                fetchState();
-            }
+            if (data.error) alert(data.error); else fetchState();
         }
-
         async function register() {
             const phone = document.getElementById('phoneInput').value.trim();
             const password = document.getElementById('passwordInput').value.trim();
-            if (!phone || !password) {
-                alert('الرجاء إدخال رقم الهاتف وكلمة المرور');
-                return;
-            }
+            if (!phone || !password) return alert('املأ الحقول');
             const data = await apiFetch('/api/register', 'POST', { phone, password });
-            if (data.error) {
-                alert('❌ ' + data.error);
-            } else {
-                alert('✅ ' + data.message);
-                fetchState();
-            }
+            if (data.error) alert(data.error); else { alert(data.message); fetchState(); }
         }
-
         async function logout() {
             await apiFetch('/api/logout', 'POST');
-            window.location.reload();
+            location.reload();
         }
-
         async function buyTicket() {
             const data = await apiFetch('/api/buy', 'POST');
-            if (data.error) {
-                alert('❌ ' + data.error);
-            } else {
-                alert('✅ ' + data.message);
-                fetchState();
-            }
+            if (data.error) alert(data.error); else { alert(data.message); fetchState(); }
         }
-
         setInterval(fetchState, 3000);
         window.onload = fetchState;
     </script>
