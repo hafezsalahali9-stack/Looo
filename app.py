@@ -1,14 +1,15 @@
 from flask import Flask, render_template, request, jsonify
-import sqlite3, random, time, threading, string, os
-from datetime import datetime
+import sqlite3, random, time, threading, string
 
 app = Flask(__name__)
-app.secret_key = 'secret-2024'
-
 DATABASE = '/tmp/lottery.db'
 TICKET_PRICE = 10000
 JACKPOT_PERCENT = 0.75
-SLOT_COST = 500  # تكلفة دورة السلوتس
+SLOT_COST = 500
+ROULETTE_COST = 1000
+BLACKJACK_COST = 2000
+POKER_COST = 5000
+DICE_COST = 800
 
 def get_db():
     db = sqlite3.connect(DATABASE)
@@ -74,55 +75,40 @@ def ss(key, value):
     db.close()
 
 def get_user_by_token(token):
-    if not token:
-        return None
+    if not token: return None
     db = get_db()
     u = db.execute('SELECT * FROM users WHERE token=?', (token,)).fetchone()
     db.close()
     return u
 
-# ====================== نظام السحب كل ساعة ======================
+# ====================== جدولة السحب كل ساعة ======================
 def draw_scheduler():
     while True:
-        time.sleep(10)  # فحص كل 10 ثوان
-        try:
-            db = get_db()
-            last_draw = float(gs('last_draw') or 0)
-            now = time.time()
-            # السحب بعد مرور ساعة (3600 ثانية) من آخر سحب
-            if now - last_draw >= 3600:
-                current_round = int(gs('current_round'))
-                # جلب جميع التذاكر غير المسحوبة (round_id = 0)
-                tickets = db.execute('SELECT * FROM tickets WHERE round_id=0').fetchall()
-                if tickets:
-                    total_tickets = len(tickets)
-                    total_value = total_tickets * TICKET_PRICE
-                    jackpot = int(total_value * JACKPOT_PERCENT)
-                    # اختيار فائز
-                    winner_ticket = random.choice(tickets)
-                    winner_id = winner_ticket['user_id']
-                    # إضافة الجائزة للرصيد
-                    db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (jackpot, winner_id))
-                    # تحديث حالة التذاكر بأنها استُخدمت في هذه الجولة
-                    db.execute('UPDATE tickets SET round_id = ? WHERE round_id = 0', (current_round,))
-                    # تحديث عدادات الحالة
-                    ss('last_draw', str(now))
-                    ss('current_round', str(current_round + 1))
-                    # سجل الفائز مؤقتاً (يمكن إظهاره في الصفحة)
-                    ss('last_winner_id', str(winner_id))
-                    ss('last_jackpot', str(jackpot))
-                    db.commit()
-                else:
-                    # لا توجد تذاكر، نحدّث الوقت فقط لعدم تكرار السحب بدون تذاكر
-                    ss('last_draw', str(now))
-                db.close()
-        except Exception as e:
-            print("Draw error:", e)
+        time.sleep(10)
+        db = get_db()
+        last_draw = float(gs('last_draw') or 0)
+        now = time.time()
+        if now - last_draw >= 3600:
+            current_round = int(gs('current_round'))
+            tickets = db.execute('SELECT * FROM tickets WHERE round_id=0').fetchall()
+            if tickets:
+                total_value = len(tickets) * TICKET_PRICE
+                jackpot = int(total_value * JACKPOT_PERCENT)
+                winner_ticket = random.choice(tickets)
+                db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (jackpot, winner_ticket['user_id']))
+                db.execute('UPDATE tickets SET round_id = ? WHERE round_id = 0', (current_round,))
+                ss('last_draw', str(now))
+                ss('current_round', str(current_round + 1))
+                ss('last_winner_id', str(winner_ticket['user_id']))
+                ss('last_jackpot', str(jackpot))
+                db.commit()
+            else:
+                ss('last_draw', str(now))
+        db.close()
 
-# بدء خيط جدولة السحب
 threading.Thread(target=draw_scheduler, daemon=True).start()
 
-# ====================== روابط الويب ======================
+# ====================== التوجيهات ======================
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -144,13 +130,11 @@ def api_state():
     next_draw = last_draw + 3600
     now = time.time()
     seconds_remaining = max(0, int(next_draw - now))
-    # حساب عدد التذاكر وقيمة الجائزة المتوقعة
     db = get_db()
     ticket_count = db.execute('SELECT COUNT(*) as c FROM tickets WHERE round_id=0').fetchone()['c']
     total_value = ticket_count * TICKET_PRICE
     expected_jackpot = int(total_value * JACKPOT_PERCENT)
     db.close()
-
     state = {
         'logged_in': user is not None,
         'user': None,
@@ -192,9 +176,7 @@ def login():
     pw = d.get('password', '').strip()
     db = get_db()
     u = db.execute('SELECT * FROM users WHERE phone=? AND password=?', (ph, pw)).fetchone()
-    if not u:
-        db.close()
-        return jsonify({'error': 'بيانات خاطئة'})
+    if not u: db.close(); return jsonify({'error': 'بيانات خاطئة'})
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     db.execute('UPDATE users SET token=? WHERE id=?', (token, u['id']))
     db.commit()
@@ -212,7 +194,6 @@ def buy():
     if u['balance'] < TICKET_PRICE:
         db.close()
         return jsonify({'error': 'رصيد غير كاف'})
-    # خصم المبلغ وإصدار تذكرة
     db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (TICKET_PRICE, user['id']))
     ticket_counter = int(gs('ticket_counter')) + 1
     ticket_number = ticket_counter
@@ -258,7 +239,7 @@ def deposit():
                (user['id'], amt, img, time.strftime('%Y-%m-%d %H:%M')))
     db.commit()
     db.close()
-    return jsonify({'message': 'تم إرسال طلب الإيداع'})
+    return jsonify({'message': 'تم إرسال طلب الإيداع للمراجعة'})
 
 @app.route('/api/withdraw', methods=['POST'])
 def withdraw():
@@ -276,9 +257,9 @@ def withdraw():
                (user['id'], acc, amt, time.strftime('%Y-%m-%d %H:%M')))
     db.commit()
     db.close()
-    return jsonify({'message': 'تم إرسال طلب السحب'})
+    return jsonify({'message': 'تم إرسال طلب السحب للمراجعة'})
 
-# ====================== لعبة السلوتس (حقيقية بالرصيد) ======================
+# ====================== ألعاب الكازينو ======================
 @app.route('/api/slots', methods=['POST'])
 def slots():
     data = request.get_json()
@@ -289,24 +270,140 @@ def slots():
     u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
     if u['balance'] < SLOT_COST:
         db.close()
-        return jsonify({'error': 'رصيد غير كافٍ للعب (تحتاج ' + str(SLOT_COST) + ' ل.س)'})
-    # خصم تكلفة الدورة
+        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {SLOT_COST} ل.س)'})
     db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (SLOT_COST, user['id']))
     db.commit()
-    # محاكاة نتيجة السلوتس
-    symbols = ['🍒', '🍋', '🍊', '🍇', '💎', '⭐']
+    symbols = ['🍒','🍋','🍊','🍇','💎','⭐']
     result = [random.choice(symbols) for _ in range(3)]
-    win_amount = 0
-    if result[0] == result[1] == result[2]:
-        win_amount = SLOT_COST * 10  # جائزة كبرى
-    elif result[0] == result[1] or result[1] == result[2] or result[0] == result[2]:
-        win_amount = SLOT_COST * 2   # تطابق رمزين
-    if win_amount > 0:
-        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win_amount, user['id']))
+    win = 0
+    if result[0]==result[1]==result[2]:
+        win = SLOT_COST * 10
+    elif result[0]==result[1] or result[1]==result[2] or result[0]==result[2]:
+        win = SLOT_COST * 2
+    if win > 0:
+        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
         db.commit()
     new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
     db.close()
-    return jsonify({'result': result, 'win': win_amount, 'balance': new_balance})
+    return jsonify({'result': result, 'win': win, 'balance': new_balance})
+
+@app.route('/api/roulette', methods=['POST'])
+def roulette():
+    data = request.get_json()
+    token = data.get('token', '') if data else ''
+    user = get_user_by_token(token)
+    if not user: return jsonify({'error': 'سجل الدخول'})
+    bet = data.get('bet')  # 'red','black','green'
+    db = get_db()
+    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
+    if u['balance'] < ROULETTE_COST:
+        db.close()
+        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {ROULETTE_COST} ل.س)'})
+    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (ROULETTE_COST, user['id']))
+    db.commit()
+    # عجلة الروليت: 18 أحمر, 18 أسود, 2 أخضر (0,00)
+    outcomes = ['red']*18 + ['black']*18 + ['green']*2
+    result = random.choice(outcomes)
+    win = 0
+    if bet == result:
+        if bet == 'green':
+            win = ROULETTE_COST * 14
+        else:
+            win = ROULETTE_COST * 2
+    if win > 0:
+        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
+        db.commit()
+    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
+    db.close()
+    return jsonify({'result': result, 'win': win, 'balance': new_balance})
+
+@app.route('/api/blackjack', methods=['POST'])
+def blackjack():
+    data = request.get_json()
+    token = data.get('token', '') if data else ''
+    user = get_user_by_token(token)
+    if not user: return jsonify({'error': 'سجل الدخول'})
+    db = get_db()
+    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
+    if u['balance'] < BLACKJACK_COST:
+        db.close()
+        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {BLACKJACK_COST} ل.س)'})
+    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (BLACKJACK_COST, user['id']))
+    db.commit()
+    # نسخة مبسطة جداً
+    player = random.randint(17, 21)
+    dealer = random.randint(17, 21)
+    win = 0
+    if player > 21:
+        result = 'lose'
+    elif dealer > 21 or player > dealer:
+        result = 'win'
+        win = BLACKJACK_COST * 2
+    elif player == dealer:
+        result = 'push'
+        win = BLACKJACK_COST  # استرداد
+    else:
+        result = 'lose'
+    if win > 0:
+        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
+        db.commit()
+    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
+    db.close()
+    return jsonify({'player': player, 'dealer': dealer, 'result': result, 'win': win, 'balance': new_balance})
+
+@app.route('/api/dice', methods=['POST'])
+def dice():
+    data = request.get_json()
+    token = data.get('token', '') if data else ''
+    user = get_user_by_token(token)
+    if not user: return jsonify({'error': 'سجل الدخول'})
+    db = get_db()
+    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
+    if u['balance'] < DICE_COST:
+        db.close()
+        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {DICE_COST} ل.س)'})
+    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (DICE_COST, user['id']))
+    db.commit()
+    # نرد: اللاعب يختار رقم من 1-6 (في الواجهة)
+    choice = int(data.get('choice', 1))
+    dice = random.randint(1,6)
+    win = 0
+    if dice == choice:
+        win = DICE_COST * 5
+    if win > 0:
+        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
+        db.commit()
+    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
+    db.close()
+    return jsonify({'dice': dice, 'win': win, 'balance': new_balance})
+
+@app.route('/api/poker', methods=['POST'])
+def poker():
+    data = request.get_json()
+    token = data.get('token', '') if data else ''
+    user = get_user_by_token(token)
+    if not user: return jsonify({'error': 'سجل الدخول'})
+    db = get_db()
+    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
+    if u['balance'] < POKER_COST:
+        db.close()
+        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {POKER_COST} ل.س)'})
+    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (POKER_COST, user['id']))
+    db.commit()
+    # توزيع عشوائي ليد بسيطة جداً: نقاط من 1-10
+    player_hand = random.randint(1,10)
+    dealer_hand = random.randint(1,10)
+    win = 0
+    if player_hand > dealer_hand:
+        win = POKER_COST * 2
+    elif player_hand == dealer_hand:
+        win = POKER_COST  # استرداد
+    if win > 0:
+        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
+        db.commit()
+    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
+    db.close()
+    return jsonify({'player': player_hand, 'dealer': dealer_hand, 'win': win, 'balance': new_balance})
 
 init_db()
 
