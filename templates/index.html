@@ -5,78 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>يانصيب شام كاش</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0a0f1f; color: #eee; text-align: center; padding: 20px; }
-        .card { background: #1a2745; padding: 20px; border-radius: 15px; margin: 15px auto; max-width: 350px; }
-        input { display: block; width: 90%; margin: 10px auto; padding: 12px; border-radius: 10px; border: none; font-size: 16px; }
-        button { background: #e94560; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 18px; margin: 10px; cursor: pointer; width: 90%; }
-        .hidden { display: none; }
-        h1 { color: #f0c27a; margin: 20px 0; }
-        .info { background: #0f3460; padding: 10px; border-radius: 10px; margin: 10px 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a0f1f;
+            color: #eee;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .card {
+            background: #1a2745;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 15px auto;
+            max-width: 350px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        input {
+            display: block;
+            width: 85%;
+            margin: 12px auto;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #3a4a6a;
+            background: #0d1b33;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+        }
+        input::placeholder {
+            color: #8899aa;
+        }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 25px;
+            font-size: 18px;
+            margin: 8px auto;
+            cursor: pointer;
+            width: 90%;
+            display: block;
+        }
+        button:active {
+            transform: scale(0.96);
+        }
+        .btn-blue {
+            background: #4a6fa5 !important;
+        }
+        .btn-gray {
+            background: #555 !important;
+        }
+        .hidden {
+            display: none !important;
+        }
+        h1 {
+            color: #f0c27a;
+            margin: 20px 0;
+            font-size: 26px;
+        }
+        h2 {
+            color: #ccc;
+            margin: 10px 0;
+            font-size: 20px;
+        }
+        .info {
+            background: #0f3460;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 17px;
+        }
+        .info span {
+            color: #f5c542;
+            font-weight: bold;
+        }
+        .msg {
+            background: #2e7d32;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .err {
+            background: #c62828;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
+    <!-- قسم تسجيل الدخول -->
     <div id="authSection">
         <h1>🎰 يانصيب شام كاش</h1>
         <div class="card">
-            <h2>دخول / تسجيل</h2>
-            <input type="text" id="phoneInput" placeholder="رقم الهاتف">
-            <input type="password" id="passwordInput" placeholder="كلمة المرور">
+            <h2>تسجيل الدخول</h2>
+            <div id="authMsg"></div>
+            <input type="text" id="phoneInput" placeholder="📱 رقم الهاتف">
+            <input type="password" id="passwordInput" placeholder="🔒 كلمة المرور">
             <button onclick="login()">🔑 دخول</button>
-            <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
+            <button onclick="register()" class="btn-blue">📝 تسجيل جديد</button>
         </div>
     </div>
+
+    <!-- اللوحة الرئيسية -->
     <div id="mainSection" class="hidden">
         <h1>🎰 يانصيب شام كاش</h1>
         <div class="card">
-            <div class="info">💰 الرصيد: <span id="balance">0</span> ل.س</div>
+            <div class="info">💰 رصيدك: <span id="balance">0</span> ل.س</div>
             <div class="info">🎫 البطاقات المباعة: <span id="ticketCount">0</span> / 50</div>
-            <button onclick="buyTicket()">🛒 اشترِ بطاقة (10,000 ل.س)</button>
-            <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
+            <div id="buyMsg"></div>
+            <button onclick="buyTicket()">🛒 شراء بطاقة (10,000 ل.س)</button>
+            <button onclick="logout()" class="btn-gray">🚪 تسجيل خروج</button>
         </div>
     </div>
+
     <script>
-        async function apiFetch(url, method = 'GET', body = null) {
-            const options = { method, headers: { 'Content-Type': 'application/json' } };
-            if (body) options.body = JSON.stringify(body);
-            const res = await fetch(url, options);
-            return await res.json();
+        // دالة الاتصال بالخادم
+        async function apiFetch(url, method, body) {
+            const options = {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(url, options);
+            const data = await response.json();
+            return data;
         }
+
+        // تحديث حالة التطبيق
         async function fetchState() {
-            const data = await apiFetch('/api/state');
-            if (data.logged_in) {
-                document.getElementById('authSection').classList.add('hidden');
-                document.getElementById('mainSection').classList.remove('hidden');
-                document.getElementById('balance').textContent = (data.user.balance || 0).toLocaleString();
-                document.getElementById('ticketCount').textContent = data.ticket_count || 0;
-            } else {
-                document.getElementById('authSection').classList.remove('hidden');
-                document.getElementById('mainSection').classList.add('hidden');
+            try {
+                const data = await apiFetch('/api/state', 'GET');
+                console.log('State:', data);
+                
+                if (data.logged_in && data.user) {
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('mainSection').classList.remove('hidden');
+                    document.getElementById('balance').textContent = Number(data.user.balance || 0).toLocaleString();
+                    document.getElementById('ticketCount').textContent = data.ticket_count || 0;
+                } else {
+                    document.getElementById('authSection').classList.remove('hidden');
+                    document.getElementById('mainSection').classList.add('hidden');
+                }
+            } catch (e) {
+                console.log('Error:', e);
             }
         }
+
+        // تسجيل الدخول
         async function login() {
             const phone = document.getElementById('phoneInput').value.trim();
             const password = document.getElementById('passwordInput').value.trim();
-            if (!phone || !password) return alert('املأ الحقول');
-            const data = await apiFetch('/api/login', 'POST', { phone, password });
-            if (data.error) alert(data.error); else fetchState();
+            
+            if (!phone || !password) {
+                document.getElementById('authMsg').innerHTML = '<div class="err">⚠️ الرجاء ملء جميع الحقول</div>';
+                return;
+            }
+            
+            document.getElementById('authMsg').innerHTML = '<div class="msg">⏳ جاري تسجيل الدخول...</div>';
+            
+            const data = await apiFetch('/api/login', 'POST', {
+                phone: phone,
+                password: password
+            });
+            
+            console.log('Login response:', data);
+            
+            if (data.error) {
+                document.getElementById('authMsg').innerHTML = '<div class="err">❌ ' + data.error + '</div>';
+            } else {
+                document.getElementById('authMsg').innerHTML = '<div class="msg">✅ ' + (data.message || 'تم الدخول') + '</div>';
+                // انتظر لحظة ثم حدث الواجهة
+                setTimeout(() => {
+                    fetchState();
+                }, 500);
+            }
         }
+
+        // تسجيل جديد
         async function register() {
             const phone = document.getElementById('phoneInput').value.trim();
             const password = document.getElementById('passwordInput').value.trim();
-            if (!phone || !password) return alert('املأ الحقول');
-            const data = await apiFetch('/api/register', 'POST', { phone, password });
-            if (data.error) alert(data.error); else { alert(data.message); fetchState(); }
+            
+            if (!phone || !password) {
+                document.getElementById('authMsg').innerHTML = '<div class="err">⚠️ الرجاء ملء جميع الحقول</div>';
+                return;
+            }
+            
+            if (password.length < 3) {
+                document.getElementById('authMsg').innerHTML = '<div class="err">⚠️ كلمة المرور قصيرة جداً</div>';
+                return;
+            }
+            
+            document.getElementById('authMsg').innerHTML = '<div class="msg">⏳ جاري إنشاء الحساب...</div>';
+            
+            const data = await apiFetch('/api/register', 'POST', {
+                phone: phone,
+                password: password
+            });
+            
+            console.log('Register response:', data);
+            
+            if (data.error) {
+                document.getElementById('authMsg').innerHTML = '<div class="err">❌ ' + data.error + '</div>';
+            } else {
+                document.getElementById('authMsg').innerHTML = '<div class="msg">✅ تم التسجيل بنجاح! جاري الدخول...</div>';
+                setTimeout(() => {
+                    fetchState();
+                }, 800);
+            }
         }
+
+        // شراء بطاقة
+        async function buyTicket() {
+            document.getElementById('buyMsg').innerHTML = '<div class="msg">⏳ جاري الشراء...</div>';
+            
+            const data = await apiFetch('/api/buy', 'POST');
+            
+            console.log('Buy response:', data);
+            
+            if (data.error) {
+                document.getElementById('buyMsg').innerHTML = '<div class="err">❌ ' + data.error + '</div>';
+            } else {
+                document.getElementById('buyMsg').innerHTML = '<div class="msg">✅ ' + data.message + '</div>';
+                fetchState();
+            }
+        }
+
+        // تسجيل خروج
         async function logout() {
             await apiFetch('/api/logout', 'POST');
-            location.reload();
+            window.location.reload();
         }
-        async function buyTicket() {
-            const data = await apiFetch('/api/buy', 'POST');
-            if (data.error) alert(data.error); else { alert(data.message); fetchState(); }
-        }
-        setInterval(fetchState, 3000);
-        window.onload = fetchState;
+
+        // بدء التطبيق
+        fetchState();
+        setInterval(fetchState, 5000);
     </script>
 </body>
 </html>
