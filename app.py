@@ -293,7 +293,7 @@ def roulette():
     token = data.get('token', '') if data else ''
     user = get_user_by_token(token)
     if not user: return jsonify({'error': 'سجل الدخول'})
-    bet = data.get('bet')  # 'red','black','green'
+    bet = data.get('bet')
     db = get_db()
     u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
     if u['balance'] < ROULETTE_COST:
@@ -301,7 +301,6 @@ def roulette():
         return jsonify({'error': f'رصيد غير كافٍ (تحتاج {ROULETTE_COST} ل.س)'})
     db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (ROULETTE_COST, user['id']))
     db.commit()
-    # عجلة الروليت: 18 أحمر, 18 أسود, 2 أخضر (0,00)
     outcomes = ['red']*18 + ['black']*18 + ['green']*2
     result = random.choice(outcomes)
     win = 0
@@ -330,7 +329,6 @@ def blackjack():
         return jsonify({'error': f'رصيد غير كافٍ (تحتاج {BLACKJACK_COST} ل.س)'})
     db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (BLACKJACK_COST, user['id']))
     db.commit()
-    # نسخة مبسطة جداً
     player = random.randint(17, 21)
     dealer = random.randint(17, 21)
     win = 0
@@ -341,7 +339,7 @@ def blackjack():
         win = BLACKJACK_COST * 2
     elif player == dealer:
         result = 'push'
-        win = BLACKJACK_COST  # استرداد
+        win = BLACKJACK_COST
     else:
         result = 'lose'
     if win > 0:
@@ -364,18 +362,17 @@ def dice():
         return jsonify({'error': f'رصيد غير كافٍ (تحتاج {DICE_COST} ل.س)'})
     db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (DICE_COST, user['id']))
     db.commit()
-    # نرد: اللاعب يختار رقم من 1-6 (في الواجهة)
     choice = int(data.get('choice', 1))
-    dice = random.randint(1,6)
+    dice_roll = random.randint(1,6)
     win = 0
-    if dice == choice:
+    if dice_roll == choice:
         win = DICE_COST * 5
     if win > 0:
         db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
         db.commit()
     new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
     db.close()
-    return jsonify({'dice': dice, 'win': win, 'balance': new_balance})
+    return jsonify({'dice': dice_roll, 'win': win, 'balance': new_balance})
 
 @app.route('/api/poker', methods=['POST'])
 def poker():
@@ -390,20 +387,37 @@ def poker():
         return jsonify({'error': f'رصيد غير كافٍ (تحتاج {POKER_COST} ل.س)'})
     db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (POKER_COST, user['id']))
     db.commit()
-    # توزيع عشوائي ليد بسيطة جداً: نقاط من 1-10
     player_hand = random.randint(1,10)
     dealer_hand = random.randint(1,10)
     win = 0
     if player_hand > dealer_hand:
         win = POKER_COST * 2
     elif player_hand == dealer_hand:
-        win = POKER_COST  # استرداد
+        win = POKER_COST
     if win > 0:
         db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
         db.commit()
     new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
     db.close()
     return jsonify({'player': player_hand, 'dealer': dealer_hand, 'win': win, 'balance': new_balance})
+
+# ====================== تصفير الحسابات ======================
+@app.route('/api/admin/reset_users', methods=['POST'])
+def reset_users():
+    data = request.get_json()
+    if data.get('password') != 'reset123':
+        return jsonify({'error': 'كلمة المرور غير صحيحة'})
+    db = get_db()
+    db.execute('DELETE FROM users')
+    db.execute('DELETE FROM tickets')
+    db.execute('DELETE FROM deposits')
+    db.execute('DELETE FROM withdrawals')
+    db.execute("UPDATE state SET value='0' WHERE key='ticket_counter'")
+    db.execute("UPDATE state SET value='0' WHERE key='last_draw'")
+    db.execute("UPDATE state SET value='1' WHERE key='current_round'")
+    db.commit()
+    db.close()
+    return jsonify({'message': 'تم حذف جميع المستخدمين والتذاكر بنجاح'})
 
 init_db()
 
