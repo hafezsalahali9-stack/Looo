@@ -2,97 +2,259 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة - يانصيب iChansy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="ppck-ver" content="2e693ad55a0b4848a5d451a419ab3fad" />
+    <title>يانصيب iChansy</title>
     <style>
-        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 15px; }
+        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 10px; margin: 0; }
+        .container { max-width: 420px; margin: auto; padding-bottom: 100px; }
+        .card { background: #1a2745; padding: 18px; border-radius: 15px; margin: 10px 0; }
         h1 { color: #f0c27a; text-align: center; }
-        h2 { color: #ccc; border-bottom: 2px solid #e94560; padding-bottom: 5px; }
-        .card { background: #0f3460; padding: 15px; border-radius: 12px; margin: 10px 0; }
-        .card img { max-width: 100%; max-height: 250px; border-radius: 8px; display: block; margin: 10px 0; }
-        button { background: #2e7d32; color: white; border: none; padding: 12px; border-radius: 25px; font-size: 16px; width: 100%; margin: 5px 0; cursor: pointer; }
-        .btn-red { background: #c62828; }
-        .btn-blue { background: #1565c0; }
-        .info { margin: 5px 0; }
+        h2 { font-size: 18px; margin: 5px 0; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 25px; border: none; font-size: 16px; box-sizing: border-box; }
+        input { background: #0d1b33; color: white; text-align: center; }
+        button { background: #e94560; color: white; font-weight: bold; cursor: pointer; }
+        .hidden { display: none !important; }
+        .info { background: #0f3460; padding: 10px; border-radius: 10px; margin: 8px 0; }
         .info span { color: #f5c542; font-weight: bold; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; }
-        .badge-pending { background: #f57f17; color: black; }
-        .badge-done { background: #2e7d32; color: white; }
+        .ad-box { text-align: center; margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; padding: 5px; }
+        .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px 0; min-height: 60px; z-index: 100; }
+        .spin-box { background: #1a1a2e; border: 2px dashed #f0c27a; padding: 15px; border-radius: 15px; text-align: center; margin: 10px 0; }
+        .spin-btn { background: #ff9800 !important; font-size: 20px !important; }
+        .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
+        .countdown { font-size: 22px; color: #ff9800; margin: 10px 0; }
+        .msg { padding: 10px; border-radius: 10px; margin: 8px 0; }
+        .ok { background: #2e7d32; }
+        .err { background: #c62828; }
     </style>
 </head>
 <body>
-    <h1>🔑 لوحة الإدارة</h1>
-    <button class="btn-blue" onclick="loadAll()">🔄 تحديث</button>
+<div class="container">
+    <div id="authSection">
+        <h1>🎰 يانصيب iChansy</h1>
+        <div class="ad-box" id="ad1"></div>
+        <div class="card">
+            <h2>تسجيل الدخول</h2>
+            <div id="authMsg"></div>
+            <input type="text" id="phoneInput" placeholder="رقم الهاتف">
+            <input type="password" id="passwordInput" placeholder="كلمة المرور">
+            <button onclick="login()">🔑 دخول</button>
+            <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
+            <p style="font-size:12px; color:#aaa; margin-top:8px;">إذا كان لديك حساب مسبق، اضغط <strong>دخول</strong>. إذا لم تسجل بعد، اضغط <strong>تسجيل جديد</strong>.</p>
+        </div>
+    </div>
 
-    <h2>📥 طلبات الإيداع</h2>
-    <div id="deposits"></div>
-    <button onclick="approveDeposits()">✅ تأكيد جميع الإيداعات</button>
+    <div id="mainSection" class="hidden">
+        <h1>🎰 يانصيب iChansy</h1>
+        <div class="ad-box" id="ad2"></div>
+        <div class="card">
+            <div class="info">💰 رصيدك: <span id="balance">0</span> ل.س</div>
+            <div class="info">🎫 البطاقات المباعة: <span id="ticketCount">0</span></div>
+            <div class="info">🏆 الجائزة المتوقعة: <span id="expectedJackpot">0</span> ل.س</div>
+            <div class="countdown" id="drawTimer">⏳ السحب القادم: --:--</div>
+            <button id="buyBtn" onclick="buyTicket()">🛒 شراء بطاقة (10,000 ل.س)</button>
+            <button onclick="logout()" style="background:#555;">تسجيل خروج</button>
+        </div>
 
-    <h2>📤 طلبات السحب</h2>
-    <div id="withdrawals"></div>
-    <button onclick="approveWithdrawals()">✅ تأكيد جميع السحوبات</button>
+        <div style="background:#0f3460; padding:10px; border-radius:10px; margin:10px 0; font-size:14px;">
+            <p>📌 <strong>كيف يعمل السحب؟</strong><br>
+            يتم السحب تلقائياً <strong>كل ساعة</strong>. الجائزة الكبرى تتكون من <strong>قيمة هائلة</strong> من مجموع التذاكر المباعة، وتُضاف <strong>مباشرة إلى حساب الفائز</strong>!<br>
+            <span style="color:gold;">✨ قد تصل الجائزة إلى 10,000,000 ل.س وأكثر!</span></p>
+        </div>
 
-    <button class="btn-red" onclick="resetUsers()" style="margin-top:25px;">⚠️ تصفير جميع الحسابات</button>
+        <a href="/games" style="display:block; background:#ff9800; color:#000; padding:12px; border-radius:25px; text-align:center; margin:10px 0; font-weight:bold; text-decoration:none;">🎰 العب ألعاب الكازينو واربح</a>
 
-    <p style="text-align:center; margin-top:20px;"><a href="/" style="color:#4a6fa5;">العودة للتطبيق</a></p>
+        <div class="spin-box">
+            <p>🎡 عجلة الحظ</p>
+            <p style="font-size:12px; color:#aaa;">شاهد إعلاناً واربح رصيداً مجانياً</p>
+            <div id="spinResult" style="font-size:22px; color:#f5c542;"></div>
+            <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 شاهد إعلان ولف العجلة</button>
+        </div>
 
-    <script>
-        async function api(url, method = 'GET', body = null) {
-            const opts = { method, headers: { 'Content-Type': 'application/json' } };
-            if (body) opts.body = JSON.stringify(body);
-            const res = await fetch(url, opts);
-            return await res.json();
+        <div class="ad-box" id="ad3"></div>
+
+        <div class="card">
+            <h2>📎 إيداع مع إيصال</h2>
+            <input type="file" id="receiptFile" accept="image/*">
+            <input type="number" id="depositAmount" placeholder="المبلغ" value="50000">
+            <button onclick="submitDeposit()" style="background:#2e7d32;">إرسال طلب الإيداع</button>
+            <p style="font-size:12px; margin-top:5px;">بعد المراجعة سيتم إضافة الرصيد إلى حسابك</p>
+        </div>
+
+        <div class="card">
+            <h2>💸 سحب إلى شام كاش</h2>
+            <input type="text" id="withdrawAccount" placeholder="رقم حساب شام كاش">
+            <input type="number" id="withdrawAmount" placeholder="المبلغ" value="10000">
+            <button onclick="submitWithdraw()">طلب سحب</button>
+        </div>
+    </div>
+</div>
+
+<div class="ad-bottom" id="ad4"></div>
+
+<script>
+    function loadAd(elId) {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const s1 = document.createElement('script');
+        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
+        const s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        el.appendChild(s1); el.appendChild(s2);
+    }
+    loadAd('ad1'); loadAd('ad2'); loadAd('ad3'); loadAd('ad4');
+
+    let token = localStorage.getItem('token') || '';
+    let currentUser = null;
+
+    async function api(url, method = 'POST', body = {}) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) { body.token = token; opts.body = JSON.stringify(body); }
+        else opts.body = JSON.stringify({ token });
+        const res = await fetch(url, opts);
+        return await res.json();
+    }
+
+    function showAdPopup(title, seconds, callback) {
+        const overlay = document.createElement('div');
+        overlay.className = 'ad-overlay';
+        overlay.innerHTML = `<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ${title}</h3>
+            <div id="popAdContainer" style="margin:15px 0; min-height:60px;"></div>
+            <p style="color:#ff9800; font-size:22px;" id="popCountdown">${seconds}</p>
+            <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button></div>`;
+        document.body.appendChild(overlay);
+        const adDiv = document.getElementById('popAdContainer');
+        const s1 = document.createElement('script');
+        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
+        const s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        adDiv.appendChild(s1); adDiv.appendChild(s2);
+        let sec = seconds;
+        const cd = setInterval(() => {
+            sec--;
+            document.getElementById('popCountdown').textContent = sec;
+            if (sec <= 0) {
+                clearInterval(cd);
+                const btn = document.getElementById('popCloseBtn');
+                btn.disabled = false;
+                btn.textContent = '✅ متابعة';
+                btn.style.background = '#e94560';
+                btn.onclick = () => { document.body.removeChild(overlay); if (callback) callback(); };
+            }
+        }, 1000);
+    }
+
+    async function refresh() {
+        const d = await api('/api/state', 'POST');
+        if (d.logged_in) {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+            currentUser = d.user;
+            document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
+            document.getElementById('ticketCount').textContent = d.ticket_count;
+            document.getElementById('expectedJackpot').textContent = Number(d.expected_jackpot).toLocaleString();
+            const remain = d.seconds_remaining;
+            const min = Math.floor(remain / 60);
+            const sec = remain % 60;
+            document.getElementById('drawTimer').textContent = `⏳ السحب القادم: ${min}:${sec.toString().padStart(2,'0')}`;
+        } else {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('mainSection').classList.add('hidden');
         }
+    }
 
-        async function loadAll() {
-            const deps = await api('/api/admin/deposits');
-            let html = '';
-            if (deps.length === 0) html = '<p>لا توجد طلبات</p>';
-            else deps.forEach(d => {
-                html += `<div class="card">
-                    <div class="info">💰 المبلغ: <span>${Number(d.amount).toLocaleString()} ل.س</span></div>
-                    <div class="info">🕐 ${d.timestamp} | <span class="badge ${d.status==='معلق'?'badge-pending':'badge-done'}">${d.status}</span></div>
-                    ${d.image ? `<img src="${d.image}" alt="إيصال">` : ''}
-                </div>`;
-            });
-            document.getElementById('deposits').innerHTML = html;
-
-            const wits = await api('/api/admin/withdrawals');
-            html = '';
-            if (wits.length === 0) html = '<p>لا توجد طلبات</p>';
-            else wits.forEach(w => {
-                html += `<div class="card">
-                    <div class="info">💸 المبلغ: <span>${Number(w.amount).toLocaleString()} ل.س</span></div>
-                    <div class="info">🔢 الحساب: <span>${w.account}</span></div>
-                    <div class="info">🕐 ${w.timestamp} | <span class="badge ${w.status==='معلق'?'badge-pending':'badge-done'}">${w.status}</span></div>
-                </div>`;
-            });
-            document.getElementById('withdrawals').innerHTML = html;
+    async function login() {
+        const phone = document.getElementById('phoneInput').value.trim();
+        const pwd = document.getElementById('passwordInput').value.trim();
+        if (!phone || !pwd) {
+            document.getElementById('authMsg').innerHTML = '<div class="msg err">الرجاء ملء الحقول</div>';
+            return;
         }
-
-        async function approveDeposits() {
-            if (!confirm('تأكيد جميع الإيداعات؟')) return;
-            const d = await api('/admin/approve-deposits', 'POST');
-            alert(d.message);
-            loadAll();
+        const d = await api('/api/login', 'POST', { phone, password: pwd });
+        if (d.error) {
+            document.getElementById('authMsg').innerHTML = '<div class="msg err">' + d.error + '</div>';
+        } else {
+            token = d.token;
+            localStorage.setItem('token', token);
+            document.getElementById('authMsg').innerHTML = '<div class="msg ok">✅ تم الدخول بنجاح</div>';
+            refresh();
         }
+    }
 
-        async function approveWithdrawals() {
-            if (!confirm('تأكيد جميع السحوبات؟')) return;
-            const d = await api('/admin/approve-withdrawals', 'POST');
-            alert(d.message);
-            loadAll();
+    async function register() {
+        const phone = document.getElementById('phoneInput').value.trim();
+        const pwd = document.getElementById('passwordInput').value.trim();
+        if (!phone || !pwd) {
+            document.getElementById('authMsg').innerHTML = '<div class="msg err">الرجاء ملء الحقول</div>';
+            return;
         }
+        const d = await api('/api/register', 'POST', { phone, password: pwd });
+        if (d.error) {
+            if (d.error === 'الرقم مسجل') {
+                document.getElementById('authMsg').innerHTML = '<div class="msg err">⚠️ الرقم مسجل مسبقاً. <br>إذا كان حسابك، استخدم زر <strong>دخول</strong> أعلاه.</div>';
+            } else {
+                document.getElementById('authMsg').innerHTML = '<div class="msg err">' + d.error + '</div>';
+            }
+        } else {
+            token = d.token;
+            localStorage.setItem('token', token);
+            document.getElementById('authMsg').innerHTML = '<div class="msg ok">✅ تم التسجيل بنجاح</div>';
+            refresh();
+        }
+    }
 
-        async function resetUsers() {
-            const pass = prompt('أدخل كلمة المرور لتصفير الحسابات:');
-            if (!pass) return;
-            const d = await api('/api/admin/reset_users', 'POST', { password: pass });
+    function logout() { localStorage.removeItem('token'); location.reload(); }
+
+    function buyTicket() {
+        showAdPopup('شاهد الإعلان لشراء البطاقة', 15, async () => {
+            const d = await api('/api/buy', 'POST', {});
+            if (d.error) alert(d.error);
+            else { alert(`✅ تم شراء البطاقة رقم ${d.ticket_number}`); refresh(); }
+        });
+    }
+
+    function startSpin() {
+        showAdPopup('شاهد الإعلان للف العجلة', 15, async () => {
+            const d = await api('/api/spin', 'POST', {});
+            if (d.error) alert(d.error);
+            else {
+                document.getElementById('spinResult').textContent = `🎉 ربحت ${d.prize} ل.س!`;
+                refresh();
+            }
+        });
+    }
+
+    function submitDeposit() {
+        const amt = parseInt(document.getElementById('depositAmount').value);
+        const file = document.getElementById('receiptFile').files[0];
+        if (!amt || amt <= 0) return alert('أدخل مبلغاً');
+        if (!file) return alert('اختر صورة الإيصال');
+        showAdPopup('شاهد الإعلان لإرسال الإيداع', 15, async () => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
+                alert(d.message || d.error);
+                document.getElementById('receiptFile').value = '';
+                refresh();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function submitWithdraw() {
+        const acc = document.getElementById('withdrawAccount').value.trim();
+        const amt = parseInt(document.getElementById('withdrawAmount').value);
+        if (!acc || !amt) return alert('املأ البيانات');
+        showAdPopup('شاهد الإعلان لإرسال السحب', 15, async () => {
+            const d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
             alert(d.message || d.error);
-            loadAll();
-        }
+            refresh();
+        });
+    }
 
-        loadAll();
-    </script>
+    refresh();
+    setInterval(refresh, 3000);
+</script>
 </body>
 </html>
