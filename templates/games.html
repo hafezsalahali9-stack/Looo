@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>سلوتس الحظ - يانصيب شام كاش</title>
+    <title>ألعاب الكازينو - يانصيب iChansy</title>
     <style>
         body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 10px; text-align: center; }
         h1 { color: #f0c27a; }
-        .slot-machine { background: #1a1a2e; border-radius: 20px; padding: 20px; margin: 15px auto; max-width: 350px; border: 2px solid gold; }
-        .reels { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
-        .reel { width: 80px; height: 80px; background: black; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 50px; border: 2px solid gold; }
-        .score { font-size: 20px; color: #f5c542; }
-        button { background: #e94560; color: white; padding: 14px; border-radius: 30px; border: none; font-size: 18px; width: 100%; margin: 10px 0; cursor: pointer; }
-        button:disabled { background: #555; }
+        .game-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 20px 0; }
+        .game-card { background: #1a2745; border-radius: 15px; padding: 15px; width: 45%; min-width: 150px; cursor: pointer; }
+        .game-card:hover { background: #2a3a5a; }
+        .game-card span { font-size: 40px; display: block; }
+        .game-area { background: #1a1a2e; border-radius: 20px; padding: 20px; margin: 15px auto; max-width: 400px; display: none; }
+        .reel { width: 70px; height: 70px; background: black; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 40px; margin: 5px; border: 2px solid gold; }
+        button { background: #e94560; color: white; padding: 12px; border-radius: 25px; border: none; font-size: 16px; width: 100%; margin: 8px 0; cursor: pointer; }
         .ad-box { margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; padding: 5px; }
         .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px 0; min-height: 60px; }
         .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
@@ -20,81 +21,171 @@
     </style>
 </head>
 <body>
-<h1>🎰 سلوتس الحظ</h1>
+<h1>🎰 ألعاب iChansy</h1>
 <div class="ad-box" id="adTop"></div>
-<div class="slot-machine">
-    <div class="score">💰 رصيدك: <span id="balance">0</span> ل.س</div>
-    <div class="reels">
-        <div class="reel" id="r1">🍒</div>
-        <div class="reel" id="r2">🍒</div>
-        <div class="reel" id="r3">🍒</div>
-    </div>
-    <div id="msg" style="font-size:18px; margin:10px 0;"></div>
-    <button id="spinBtn" onclick="startSpin()">🎰 لف (500 ل.س)</button>
+
+<!-- قائمة الألعاب -->
+<div class="game-container">
+    <div class="game-card" onclick="showGame('slots')"><span>🎰</span>سلوتس</div>
+    <div class="game-card" onclick="showGame('roulette')"><span>🎡</span>روليت</div>
+    <div class="game-card" onclick="showGame('blackjack')"><span>🃏</span>بلاك جاك</div>
+    <div class="game-card" onclick="showGame('dice')"><span>🎲</span>نرد</div>
+    <div class="game-card" onclick="showGame('poker')"><span>♠️</span>بوكر</div>
 </div>
+
+<!-- مناطق الألعاب -->
+<div id="slotsArea" class="game-area">
+    <h2>🎰 سلوتس</h2>
+    <div><span class="reel" id="r1">🍒</span><span class="reel" id="r2">🍒</span><span class="reel" id="r3">🍒</span></div>
+    <p id="slotsMsg"></p>
+    <button onclick="playSlots()">لف (500 ل.س)</button>
+</div>
+
+<div id="rouletteArea" class="game-area">
+    <h2>🎡 روليت</h2>
+    <p>اختر لون:</p>
+    <button onclick="playRoulette('red')" style="background:red;">أحمر</button>
+    <button onclick="playRoulette('black')" style="background:black;">أسود</button>
+    <button onclick="playRoulette('green')" style="background:green;">أخضر (0)</button>
+    <p id="rouletteMsg"></p>
+</div>
+
+<div id="blackjackArea" class="game-area">
+    <h2>🃏 بلاك جاك</h2>
+    <p>اضغط للعب</p>
+    <button onclick="playBlackjack()">لعب (2,000 ل.س)</button>
+    <p id="blackjackMsg"></p>
+</div>
+
+<div id="diceArea" class="game-area">
+    <h2>🎲 نرد</h2>
+    <p>توقع رقم النرد (1-6):</p>
+    <div style="display:flex; flex-wrap:wrap; justify-content:center;">
+        <script>for(let i=1;i<=6;i++)document.write(`<button style="width:50px;margin:3px;" onclick="playDice(${i})">${i}</button>`);</script>
+    </div>
+    <p id="diceMsg"></p>
+</div>
+
+<div id="pokerArea" class="game-area">
+    <h2>♠️ بوكر</h2>
+    <p>يدك ضد يد الموزع</p>
+    <button onclick="playPoker()">لعب (5,000 ل.س)</button>
+    <p id="pokerMsg"></p>
+</div>
+
 <div class="ad-box" id="adMid"></div>
 <a href="/" style="color:gold; display:block; margin:15px;">← العودة لليانصيب</a>
 <div class="ad-bottom" id="adFixed"></div>
 
 <script>
+    // تحميل الإعلانات
     function loadAd(id) {
-        var el = document.getElementById(id);
+        const el = document.getElementById(id);
         if (!el) return;
-        el.innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
+        const s1 = document.createElement('script');
+        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
+        const s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        el.appendChild(s1); el.appendChild(s2);
     }
     loadAd('adTop'); loadAd('adMid'); loadAd('adFixed');
 
-    var token = localStorage.getItem('token') || '';
-    async function api(url, body) {
-        var opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
-        if (body) { body.token = token; opts.body = JSON.stringify(body); }
-        else opts.body = JSON.stringify({ token: token });
-        var res = await fetch(url, opts);
+    const token = localStorage.getItem('token') || '';
+    async function api(url, body = {}) {
+        body.token = token;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
         return await res.json();
     }
 
     function showAdPopup(callback) {
-        var overlay = document.createElement('div');
+        const overlay = document.createElement('div');
         overlay.className = 'ad-overlay';
-        overlay.innerHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 شاهد الإعلان للف السلوتس</h3><div id="popAd" style="margin:15px 0; min-height:60px;"></div><p style="color:#ff9800; font-size:22px;" id="popCountdown">5</p><button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button></div>';
+        overlay.innerHTML = `<div class="ad-popup"><h3 style="color:#f0c27a;">📢 شاهد الإعلان للعب</h3>
+            <div id="popAd" style="margin:15px 0; min-height:60px;"></div>
+            <p style="color:#ff9800; font-size:22px;" id="popCountdown">5</p>
+            <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button></div>`;
         document.body.appendChild(overlay);
-        document.getElementById('popAd').innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
-        var sec = 5;
-        var cd = setInterval(function() {
+        const adDiv = document.getElementById('popAd');
+        const s1 = document.createElement('script');
+        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
+        const s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        adDiv.appendChild(s1); adDiv.appendChild(s2);
+        let sec = 5;
+        const cd = setInterval(() => {
             sec--;
             document.getElementById('popCountdown').textContent = sec;
             if (sec <= 0) {
                 clearInterval(cd);
-                var btn = document.getElementById('popCloseBtn');
+                const btn = document.getElementById('popCloseBtn');
                 btn.disabled = false;
-                btn.textContent = '🎰 لف الآن!';
+                btn.textContent = '✅ متابعة';
                 btn.style.background = '#e94560';
-                btn.onclick = function() { document.body.removeChild(overlay); if (callback) callback(); };
+                btn.onclick = () => { document.body.removeChild(overlay); if (callback) callback(); };
             }
         }, 1000);
     }
 
-    async function updateBalance() {
-        var d = await api('/api/state');
-        if (d.logged_in) document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
-        else window.location.href = '/';
+    function showGame(game) {
+        ['slots','roulette','blackjack','dice','poker'].forEach(g => {
+            document.getElementById(g+'Area').style.display = 'none';
+        });
+        document.getElementById(game+'Area').style.display = 'block';
     }
 
-    function startSpin() {
-        showAdPopup(doSpin);
+    async function playSlots() {
+        showAdPopup(async () => {
+            const d = await api('/api/slots');
+            if (d.error) return alert(d.error);
+            document.getElementById('r1').textContent = d.result[0];
+            document.getElementById('r2').textContent = d.result[1];
+            document.getElementById('r3').textContent = d.result[2];
+            document.getElementById('slotsMsg').textContent = d.win > 0 ? `🎉 ربحت ${d.win} ل.س!` : '😢 حاول مرة أخرى';
+        });
     }
 
-    async function doSpin() {
-        var d = await api('/api/slots', {});
-        if (d.error) { alert(d.error); return; }
-        document.getElementById('r1').textContent = d.result[0];
-        document.getElementById('r2').textContent = d.result[1];
-        document.getElementById('r3').textContent = d.result[2];
-        document.getElementById('msg').textContent = d.win > 0 ? '🎉 ربحت ' + d.win + ' ل.س!' : '😢 حاول مرة أخرى';
-        document.getElementById('balance').textContent = Number(d.balance).toLocaleString();
+    async function playRoulette(bet) {
+        showAdPopup(async () => {
+            const d = await api('/api/roulette', { bet });
+            if (d.error) return alert(d.error);
+            document.getElementById('rouletteMsg').textContent = `النتيجة: ${d.result}. ${d.win>0?'ربحت '+d.win+' ل.س!':'خسرت'}`;
+        });
     }
 
-    updateBalance();
+    async function playBlackjack() {
+        showAdPopup(async () => {
+            const d = await api('/api/blackjack');
+            if (d.error) return alert(d.error);
+            let txt = `يدك: ${d.player} | الموزع: ${d.dealer}. `;
+            if (d.result === 'win') txt += `🎉 ربحت ${d.win} ل.س!`;
+            else if (d.result === 'push') txt += 'تعادل، استرددت رهانك.';
+            else txt += 'خسرت.';
+            document.getElementById('blackjackMsg').textContent = txt;
+        });
+    }
+
+    async function playDice(choice) {
+        showAdPopup(async () => {
+            const d = await api('/api/dice', { choice });
+            if (d.error) return alert(d.error);
+            document.getElementById('diceMsg').textContent = `النرد: ${d.dice}. ${d.win>0?'ربحت '+d.win+' ل.س!':'خسرت'}`;
+        });
+    }
+
+    async function playPoker() {
+        showAdPopup(async () => {
+            const d = await api('/api/poker');
+            if (d.error) return alert(d.error);
+            let txt = `يدك: ${d.player} | الموزع: ${d.dealer}. `;
+            if (d.win > 0) txt += `🎉 ربحت ${d.win} ل.س!`;
+            else txt += 'خسرت.';
+            document.getElementById('pokerMsg').textContent = txt;
+        });
+    }
 </script>
 </body>
 </html>
