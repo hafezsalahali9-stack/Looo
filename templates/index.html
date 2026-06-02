@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="ppck-ver" content="2e693ad55a0b4848a5d451a419ab3fad" />
     <title>يانصيب شام كاش</title>
     <style>
         body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 0; margin: 0; }
@@ -22,6 +23,11 @@
         img.preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin: 5px 0; display: none; }
         .ad-box { text-align: center; margin: 10px 0; min-height: 50px; }
         .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; z-index: 100; background: #0a0f1f; padding: 5px 0; }
+        .spin-box { background: #1a1a2e; border: 2px dashed #f0c27a; padding: 20px; border-radius: 15px; text-align: center; margin: 10px 0; }
+        .spin-box p { color: #f0c27a; font-weight: bold; }
+        .spin-btn { background: #ff9800 !important; font-size: 20px !important; }
+        .spin-result { font-size: 22px; color: #f5c542; font-weight: bold; margin: 10px 0; }
+        .timer { color: #ff9800; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -31,16 +37,9 @@
 <div id="authSection">
     <h1>🎰 يانصيب شام كاش</h1>
     
-    <!-- إعلان علوي -->
     <div class="ad-box">
         <script>
-          atOptions = {
-            'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
-            'format' : 'iframe',
-            'height' : 50,
-            'width' : 320,
-            'params' : {}
-          };
+          atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
         </script>
         <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
     </div>
@@ -58,37 +57,32 @@
 <div id="mainSection" class="hidden">
     <h1>🎰 يانصيب شام كاش</h1>
     
-    <!-- إعلان علوي -->
     <div class="ad-box">
         <script>
-          atOptions = {
-            'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
-            'format' : 'iframe',
-            'height' : 50,
-            'width' : 320,
-            'params' : {}
-          };
+          atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
         </script>
         <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
     </div>
     
     <div class="card">
         <div class="info">💰 الرصيد: <span id="balance">0</span> ل.س</div>
+        <div class="info">🎁 رصيد مجاني: <span id="freeBalance">0</span> ل.س</div>
         <div class="info">🎫 البطاقات: <span id="ticketCount">0</span> / 50</div>
         <button id="buyBtn" onclick="buyTicket()">🛒 شراء بطاقة (10,000 ل.س)</button>
         <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
     </div>
 
-    <!-- إعلان وسطي -->
+    <div class="spin-box">
+        <p>🎡 عجلة الحظ - اربح رصيداً مجانياً</p>
+        <p style="font-size:12px; color:#aaa;">يجب مشاهدة إعلان قبل اللعب</p>
+        <div class="spin-result" id="spinResult"></div>
+        <div class="timer" id="spinTimer"></div>
+        <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 شاهد إعلان ولف العجلة</button>
+    </div>
+
     <div class="ad-box">
         <script>
-          atOptions = {
-            'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
-            'format' : 'iframe',
-            'height' : 50,
-            'width' : 320,
-            'params' : {}
-          };
+          atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
         </script>
         <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
     </div>
@@ -111,16 +105,9 @@
 
 </div>
 
-<!-- إعلان سفلي ثابت -->
 <div class="ad-bottom">
     <script>
-      atOptions = {
-        'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
-        'format' : 'iframe',
-        'height' : 50,
-        'width' : 320,
-        'params' : {}
-      };
+      atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
     </script>
     <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
 </div>
@@ -133,16 +120,81 @@
         return await res.json();
     }
 
+    let currentUser = null;
+    let spinAvailable = true;
+    let spinTimeout = null;
+
     async function refresh() {
         let d = await api('/api/state');
         if (d.logged_in) {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
+            currentUser = d.user;
             document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
+            document.getElementById('freeBalance').textContent = Number(d.user.free_balance).toLocaleString();
             document.getElementById('ticketCount').textContent = d.ticket_count;
+            updateSpinStatus(d.user.last_spin_time);
         } else {
             document.getElementById('authSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
+        }
+    }
+
+    function updateSpinStatus(lastTime) {
+        let now = Date.now() / 1000;
+        let diff = now - (lastTime || 0);
+        let remain = Math.max(0, 60 - Math.floor(diff));
+        if (remain > 0) {
+            spinAvailable = false;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('spinBtn').textContent = `⏳ انتظر ${remain} ثانية`;
+            if (spinTimeout) clearTimeout(spinTimeout);
+            spinTimeout = setTimeout(() => {
+                spinAvailable = true;
+                document.getElementById('spinBtn').disabled = false;
+                document.getElementById('spinBtn').textContent = '🎰 شاهد إعلان ولف العجلة';
+            }, remain * 1000);
+        } else {
+            spinAvailable = true;
+            document.getElementById('spinBtn').disabled = false;
+            document.getElementById('spinBtn').textContent = '🎰 شاهد إعلان ولف العجلة';
+        }
+    }
+
+    async function startSpin() {
+        if (!spinAvailable) return alert('⏳ انتظر قليلاً');
+        let adModal = document.createElement('div');
+        adModal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; z-index:999;";
+        adModal.innerHTML = `<div style="background:#1a2745; padding:30px; border-radius:20px; text-align:center; max-width:350px;">
+            <h3 style="color:#f0c27a;">📢 إعلان</h3>
+            <p style="color:#ccc;">شاهد الإعلان للحصول على فرصة ربح</p>
+            <p style="color:#ff9800; font-size:24px; font-weight:bold;" id="adCountdown">5</p>
+            <button id="adCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white; font-size:16px;">⏳ انتظر...</button>
+        </div>`;
+        document.body.appendChild(adModal);
+        let sec = 5;
+        let cd = setInterval(() => {
+            sec--;
+            document.getElementById('adCountdown').textContent = sec;
+            if (sec <= 0) {
+                clearInterval(cd);
+                document.getElementById('adCloseBtn').disabled = false;
+                document.getElementById('adCloseBtn').textContent = '🎰 لف العجلة الآن!';
+                document.getElementById('adCloseBtn').style.background = '#e94560';
+                document.getElementById('adCloseBtn').onclick = async () => {
+                    document.body.removeChild(adModal);
+                    await doSpin();
+                };
+            }
+        }, 1000);
+    }
+
+    async function doSpin() {
+        let d = await api('/api/spin', 'POST');
+        if (d.error) alert(d.error);
+        else {
+            document.getElementById('spinResult').textContent = `🎉 ربحت ${d.prize.toLocaleString()} ل.س!`;
+            refresh();
         }
     }
 
@@ -171,8 +223,6 @@
     async function logout() { await api('/api/logout', 'POST'); location.reload(); }
 
     async function buyTicket() {
-        let ad = confirm('📢 إعلان سريع:\n\nهل تريد متابعة شراء البطاقة؟');
-        if (!ad) return;
         let d = await api('/api/buy', 'POST');
         alert(d.message || d.error);
         refresh();
