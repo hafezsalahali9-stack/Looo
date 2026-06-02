@@ -2,25 +2,24 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="ppck-ver" content="2e693ad55a0b4848a5d451a419ab3fad" />
     <title>يانصيب شام كاش</title>
     <style>
-        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 0; margin: 0; }
-        .container { max-width: 400px; margin: auto; padding: 10px; padding-bottom: 100px; }
-        .card { background: #1a2745; padding: 18px; border-radius: 15px; margin: 10px 0; }
-        h1 { color: #f0c27a; text-align: center; font-size: 24px; margin: 10px 0; }
-        h2 { color: #ccc; font-size: 18px; margin: 5px 0 10px; }
-        input, button { display: block; width: 100%; padding: 12px; margin: 8px 0; border-radius: 25px; border: none; font-size: 16px; box-sizing: border-box; }
-        input { background: #0d1b33; color: white; text-align: center; border: 1px solid #3a4a6a; }
-        button { background: #e94560; color: white; cursor: pointer; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0f1f; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+        .container { width: 100%; max-width: 440px; background: #121a2f; border-radius: 24px; padding: 20px 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        h1 { color: #f0c27a; text-align: center; margin-bottom: 16px; font-size: 26px; }
+        .card { background: #1a2745; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+        .balance-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 17px; }
+        .balance-row span { color: #f5c542; font-weight: bold; }
+        .ticket-info { background: #0f203a; padding: 10px; border-radius: 10px; text-align: center; margin: 12px 0; font-size: 18px; }
+        button { background: #e94560; color: white; border: none; padding: 14px; border-radius: 30px; font-size: 18px; width: 100%; margin: 8px 0; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        button:active { transform: scale(0.96); }
+        button:disabled { background: #4a4a6a; cursor: not-allowed; }
+        .ad-btn { background: #3b82f6; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 6px 0; border-radius: 12px; border: 1px solid #2e3b55; background: #0b1324; color: white; font-size: 16px; text-align: center; }
         .hidden { display: none !important; }
-        .info { background: #0f3460; padding: 10px; border-radius: 10px; margin: 8px 0; font-size: 16px; }
-        .info span { color: #f5c542; font-weight: bold; }
-        .msg { padding: 10px; border-radius: 10px; margin: 8px 0; text-align: center; }
-        .ok { background: #2e7d32; }
-        .err { background: #c62828; }
-        img.preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin: 5px 0; display: none; }
         .ad-box { text-align: center; margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; padding: 5px; }
         .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; z-index: 100; background: #0a0f1f; padding: 5px 0; min-height: 60px; }
         .spin-box { background: #1a1a2e; border: 2px dashed #f0c27a; padding: 20px; border-radius: 15px; text-align: center; margin: 10px 0; }
@@ -29,71 +28,70 @@
         .spin-result { font-size: 22px; color: #f5c542; font-weight: bold; margin: 10px 0; }
         .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
         .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
+        .msg { padding: 10px; border-radius: 10px; margin: 8px 0; text-align: center; }
+        .ok { background: #2e7d32; }
+        .err { background: #c62828; }
+        img.preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin: 5px 0; display: none; }
+        a.games-link { display: block; background: #ff9800; color: #000; padding: 12px; border-radius: 25px; text-align: center; margin: 10px 0; font-weight: bold; text-decoration: none; }
     </style>
 </head>
 <body>
-
 <div class="container" id="app">
-
-<div id="authSection">
-    <h1>🎰 يانصيب شام كاش</h1>
-    
-    <div class="ad-box" id="ad1"></div>
-    
-    <div class="card">
-        <h2>تسجيل الدخول</h2>
-        <div id="authMsg"></div>
-        <input type="text" id="phoneInput" placeholder="📱 رقم الهاتف">
-        <input type="password" id="passwordInput" placeholder="🔒 كلمة المرور">
-        <button onclick="login()">🔑 دخول</button>
-        <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
-    </div>
-</div>
-
-<div id="mainSection" class="hidden">
-    <h1>🎰 يانصيب شام كاش</h1>
-    
-    <div class="ad-box" id="ad2"></div>
-    
-    <div class="card">
-        <div class="info">💰 الرصيد: <span id="balance">0</span> ل.س</div>
-        <div class="info">🎁 رصيد مجاني: <span id="freeBalance">0</span> ل.س</div>
-        <div class="info">🎫 البطاقات: <span id="ticketCount">0</span> / 50</div>
-        <button id="buyBtn" onclick="buyTicket()">🛒 شراء بطاقة (10,000 ل.س)</button>
-        <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
+    <div id="authSection">
+        <h1>🎰 يانصيب شام كاش</h1>
+        <div class="ad-box" id="ad1"></div>
+        <div class="card">
+            <h2>تسجيل الدخول</h2>
+            <div id="authMsg"></div>
+            <input type="text" id="phoneInput" placeholder="📱 رقم الهاتف">
+            <input type="password" id="passwordInput" placeholder="🔒 كلمة المرور">
+            <button onclick="login()">🔑 دخول</button>
+            <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
+        </div>
     </div>
 
-    <div class="spin-box">
-        <p>🎡 عجلة الحظ</p>
-        <p style="font-size:12px; color:#aaa;">شاهد إعلاناً واربح رصيداً مجانياً</p>
-        <div class="spin-result" id="spinResult"></div>
-        <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 شاهد إعلان ولف العجلة</button>
+    <div id="mainSection" class="hidden">
+        <h1>🎰 يانصيب شام كاش</h1>
+        <div class="ad-box" id="ad2"></div>
+        <div class="card">
+            <div class="balance-row">💰 الرصيد: <span id="balance">0</span> ل.س</div>
+            <div class="balance-row">🎁 رصيد مجاني: <span id="freeBalance">0</span> ل.س</div>
+            <div class="ticket-info">🎫 البطاقات: <span id="ticketCount">0</span> / 50</div>
+            <button id="buyBtn" onclick="buyTicket()">🛒 شراء بطاقة (10,000 ل.س)</button>
+            <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
+        </div>
+
+        <a href="/games" class="games-link">🎰 العب سلوتس الحظ واربح</a>
+
+        <div class="spin-box">
+            <p>🎡 عجلة الحظ</p>
+            <p style="font-size:12px; color:#aaa;">شاهد إعلاناً واربح رصيداً مجانياً</p>
+            <div class="spin-result" id="spinResult"></div>
+            <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 شاهد إعلان ولف العجلة</button>
+        </div>
+
+        <div class="ad-box" id="ad3"></div>
+
+        <div class="card">
+            <h2>📎 إيداع مع إيصال</h2>
+            <input type="file" id="receiptFile" accept="image/*" onchange="preview()">
+            <img id="previewImg" class="preview">
+            <input type="number" id="depositAmount" placeholder="💰 المبلغ" value="50000">
+            <button onclick="submitDeposit()" style="background:#2e7d32;">📤 إرسال طلب الإيداع</button>
+        </div>
+
+        <div class="card">
+            <h2>💸 سحب إلى شام كاش</h2>
+            <input type="text" id="withdrawAccount" placeholder="🔢 رقم حساب شام كاش">
+            <input type="number" id="withdrawAmount" placeholder="💰 المبلغ" value="10000">
+            <button onclick="submitWithdraw()">📤 طلب سحب</button>
+        </div>
     </div>
-
-    <div class="ad-box" id="ad3"></div>
-
-    <div class="card">
-        <h2>📎 إيداع مع إيصال</h2>
-        <input type="file" id="receiptFile" accept="image/*" onchange="preview()">
-        <img id="previewImg" class="preview">
-        <input type="number" id="depositAmount" placeholder="💰 المبلغ" value="50000">
-        <button onclick="submitDeposit()" style="background:#2e7d32;">📤 إرسال طلب الإيداع</button>
-    </div>
-
-    <div class="card">
-        <h2>💸 سحب إلى شام كاش</h2>
-        <input type="text" id="withdrawAccount" placeholder="🔢 رقم حساب شام كاش">
-        <input type="number" id="withdrawAmount" placeholder="💰 المبلغ" value="10000">
-        <button onclick="submitWithdraw()">📤 طلب سحب</button>
-    </div>
-</div>
-
 </div>
 
 <div class="ad-bottom" id="ad4"></div>
 
 <script>
-    // تحميل الإعلانات
     function loadAd(elId) {
         var el = document.getElementById(elId);
         if (!el) return;
@@ -104,24 +102,17 @@
         s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
         el.appendChild(s2);
     }
+    loadAd('ad1'); loadAd('ad2'); loadAd('ad3'); loadAd('ad4');
 
-    loadAd('ad1');
-    loadAd('ad2');
-    loadAd('ad3');
-    loadAd('ad4');
-
-    // ========== إدارة التوكن ==========
     var token = localStorage.getItem('token') || '';
-    
+    var currentUser = null;
+    var spinAvailable = true;
+
     async function api(url, method, body) {
         method = method || 'GET';
         var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
-        if (body) {
-            body.token = token;
-            opts.body = JSON.stringify(body);
-        } else if (method === 'POST') {
-            opts.body = JSON.stringify({ token: token });
-        }
+        if (body) { body.token = token; opts.body = JSON.stringify(body); }
+        else if (method === 'POST') { opts.body = JSON.stringify({ token: token }); }
         var res = await fetch(url, opts);
         return await res.json();
     }
@@ -129,13 +120,11 @@
     function showAdPopup(title, seconds, callback) {
         var overlay = document.createElement('div');
         overlay.className = 'ad-overlay';
-        var popupHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ' + title + '</h3>' +
+        overlay.innerHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ' + title + '</h3>' +
             '<div id="popAdContainer" style="margin:15px 0; min-height:60px;"></div>' +
             '<p style="color:#ff9800; font-size:22px; font-weight:bold;" id="popCountdown">' + seconds + '</p>' +
             '<button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white; font-size:16px;">⏳ انتظر</button></div>';
-        overlay.innerHTML = popupHTML;
         document.body.appendChild(overlay);
-        // تحميل الإعلان داخل popup
         var popAdDiv = document.getElementById('popAdContainer');
         var s1 = document.createElement('script');
         s1.text = 'atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};';
@@ -143,7 +132,6 @@
         var s2 = document.createElement('script');
         s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
         popAdDiv.appendChild(s2);
-        
         var sec = seconds;
         var cd = setInterval(function() {
             sec--;
@@ -161,10 +149,6 @@
             }
         }, 1000);
     }
-
-    // ========== التطبيق ==========
-    var currentUser = null;
-    var spinAvailable = true;
 
     async function refresh() {
         var d = await api('/api/state', 'POST');
@@ -200,7 +184,7 @@
 
     function startSpin() {
         if (!spinAvailable) return alert('⏳ انتظر قليلاً');
-        showAdPopup('شاهد الإعلان للف العجلة', 5, doSpin);
+        showAdPopup('شاهد الإعلان للف العجلة', 15, doSpin);
     }
 
     async function doSpin() {
@@ -222,11 +206,7 @@
         if (!phone || !pwd) return showAuthMsg('املأ جميع الحقول', 'err');
         var d = await api('/api/login', 'POST', { phone: phone, password: pwd });
         if (d.error) showAuthMsg(d.error, 'err');
-        else {
-            token = d.token;
-            localStorage.setItem('token', token);
-            refresh();
-        }
+        else { token = d.token; localStorage.setItem('token', token); refresh(); }
     }
 
     async function register() {
@@ -235,23 +215,17 @@
         if (!phone || !pwd) return showAuthMsg('املأ جميع الحقول', 'err');
         var d = await api('/api/register', 'POST', { phone: phone, password: pwd });
         if (d.error) showAuthMsg(d.error, 'err');
-        else {
-            token = d.token;
-            localStorage.setItem('token', token);
-            refresh();
-        }
+        else { token = d.token; localStorage.setItem('token', token); refresh(); }
     }
 
     function logout() {
-        localStorage.removeItem('token');
-        token = '';
-        currentUser = null;
+        localStorage.removeItem('token'); token = ''; currentUser = null;
         document.getElementById('authSection').classList.remove('hidden');
         document.getElementById('mainSection').classList.add('hidden');
     }
 
     function buyTicket() {
-        showAdPopup('شاهد الإعلان لشراء البطاقة', 3, async function() {
+        showAdPopup('شاهد الإعلان لشراء البطاقة', 15, async function() {
             var d = await api('/api/buy', 'POST', {});
             alert(d.message || d.error);
             refresh();
@@ -263,7 +237,7 @@
         var file = document.getElementById('receiptFile').files[0];
         if (!amt || amt <= 0) return alert('أدخل مبلغاً صحيحاً');
         if (!file) return alert('اختر صورة الإيصال');
-        showAdPopup('شاهد الإعلان لإرسال الإيداع', 3, async function() {
+        showAdPopup('شاهد الإعلان لإرسال الإيداع', 15, async function() {
             var reader = new FileReader();
             reader.onload = async function(e) {
                 var d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
@@ -280,7 +254,7 @@
         var acc = document.getElementById('withdrawAccount').value.trim();
         var amt = parseInt(document.getElementById('withdrawAmount').value);
         if (!acc || !amt) return alert('املأ البيانات');
-        showAdPopup('شاهد الإعلان لإرسال السحب', 3, async function() {
+        showAdPopup('شاهد الإعلان لإرسال السحب', 15, async function() {
             var d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
             alert(d.message || d.error);
             refresh();
