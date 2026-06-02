@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="ppck-ver" content="2e693ad55a0b4848a5d451a419ab3fad" />
-    <title>يانصيب شام كاش</title>
+    <title>يانصيب iChansy</title>
     <style>
         body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 10px; margin: 0; }
         .container { max-width: 420px; margin: auto; padding-bottom: 100px; }
@@ -23,8 +23,6 @@
         .spin-btn { background: #ff9800 !important; font-size: 20px !important; }
         .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
         .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
-        .msg { padding: 10px; border-radius: 10px; margin: 8px 0; }
-        .ok { background: #2e7d32; } .err { background: #c62828; }
         .countdown { font-size: 22px; color: #ff9800; margin: 10px 0; }
         .ticket-number { background: gold; color: black; padding: 10px; border-radius: 15px; font-size: 22px; margin: 10px 0; }
     </style>
@@ -32,7 +30,7 @@
 <body>
 <div class="container">
     <div id="authSection">
-        <h1>🎰 يانصيب شام كاش</h1>
+        <h1>🎰 يانصيب iChansy</h1>
         <div class="ad-box" id="ad1"></div>
         <div class="card">
             <h2>تسجيل الدخول</h2>
@@ -45,7 +43,7 @@
     </div>
 
     <div id="mainSection" class="hidden">
-        <h1>🎰 يانصيب شام كاش</h1>
+        <h1>🎰 يانصيب iChansy</h1>
         <div class="ad-box" id="ad2"></div>
         <div class="card">
             <div class="info">💰 رصيدك: <span id="balance">0</span> ل.س</div>
@@ -57,10 +55,12 @@
         </div>
 
         <div style="background:#0f3460; padding:10px; border-radius:10px; margin:10px 0; font-size:14px;">
-            <p>📌 <strong>نظام السحب:</strong> يتم السحب تلقائياً كل ساعة. الجائزة = 75% من قيمة البطاقات المباعة. <br>قد تصل الجائزة إلى <span style="color:gold;">10,000,000 ل.س</span> عند بيع بطاقات كثيرة.</p>
+            <p>📌 <strong>كيف يعمل السحب؟</strong><br>
+            يتم السحب تلقائياً <strong>كل ساعة</strong>. الجائزة الكبرى تتكون من <strong>قيمة هائلة</strong> من مجموع التذاكر المباعة، وتُضاف <strong>مباشرة إلى حساب الفائز</strong>!<br>
+            <span style="color:gold;">✨ قد تصل الجائزة إلى 10,000,000 ل.س وأكثر!</span></p>
         </div>
 
-        <a href="/games" style="display:block; background:#ff9800; color:#000; padding:12px; border-radius:25px; text-align:center; margin:10px 0; font-weight:bold; text-decoration:none;">🎰 العب سلوتس الحظ واربح</a>
+        <a href="/games" style="display:block; background:#ff9800; color:#000; padding:12px; border-radius:25px; text-align:center; margin:10px 0; font-weight:bold; text-decoration:none;">🎰 العب ألعاب الكازينو واربح</a>
 
         <div class="spin-box">
             <p>🎡 عجلة الحظ</p>
@@ -76,6 +76,7 @@
             <input type="file" id="receiptFile" accept="image/*">
             <input type="number" id="depositAmount" placeholder="المبلغ" value="50000">
             <button onclick="submitDeposit()" style="background:#2e7d32;">إرسال طلب الإيداع</button>
+            <p style="font-size:12px; margin-top:5px;">بعد المراجعة سيتم إضافة الرصيد إلى حسابك</p>
         </div>
 
         <div class="card">
@@ -90,51 +91,70 @@
 <div class="ad-bottom" id="ad4"></div>
 
 <script>
-    function loadAd(id) {
-        var el = document.getElementById(id);
+    // دالة تحميل الإعلانات بشكل صحيح
+    function loadAd(elId) {
+        const el = document.getElementById(elId);
         if (!el) return;
-        el.innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
+        const script1 = document.createElement('script');
+        script1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
+        const script2 = document.createElement('script');
+        script2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        el.appendChild(script1);
+        el.appendChild(script2);
     }
     loadAd('ad1'); loadAd('ad2'); loadAd('ad3'); loadAd('ad4');
 
-    var token = localStorage.getItem('token') || '';
-    var currentUser = null;
+    const token = localStorage.getItem('token') || '';
+    let currentUser = null;
 
-    async function api(url, method, body) {
-        method = method || 'GET';
-        var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    async function api(url, method = 'POST', body = {}) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
         if (body) { body.token = token; opts.body = JSON.stringify(body); }
-        else if (method === 'POST') { opts.body = JSON.stringify({ token: token }); }
-        var res = await fetch(url, opts);
+        else opts.body = JSON.stringify({ token });
+        const res = await fetch(url, opts);
         return await res.json();
     }
 
     function showAdPopup(title, seconds, callback) {
-        var overlay = document.createElement('div');
+        const overlay = document.createElement('div');
         overlay.className = 'ad-overlay';
-        overlay.innerHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ' + title + '</h3>' +
-            '<div id="popAd" style="margin:15px 0; min-height:60px;"></div>' +
-            '<p style="color:#ff9800; font-size:22px;" id="popCountdown">' + seconds + '</p>' +
-            '<button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button></div>';
+        overlay.innerHTML = `
+            <div class="ad-popup">
+                <h3 style="color:#f0c27a;">📢 ${title}</h3>
+                <div id="popAdContainer" style="margin:15px 0; min-height:60px;"></div>
+                <p style="color:#ff9800; font-size:22px;" id="popCountdown">${seconds}</p>
+                <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button>
+            </div>
+        `;
         document.body.appendChild(overlay);
-        document.getElementById('popAd').innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
-        var sec = seconds;
-        var cd = setInterval(function() {
+        // تحميل الإعلان داخل النافذة
+        const adDiv = document.getElementById('popAdContainer');
+        const s1 = document.createElement('script');
+        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
+        const s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        adDiv.appendChild(s1);
+        adDiv.appendChild(s2);
+        let sec = seconds;
+        const cd = setInterval(() => {
             sec--;
             document.getElementById('popCountdown').textContent = sec;
             if (sec <= 0) {
                 clearInterval(cd);
-                var btn = document.getElementById('popCloseBtn');
+                const btn = document.getElementById('popCloseBtn');
                 btn.disabled = false;
                 btn.textContent = '✅ متابعة';
                 btn.style.background = '#e94560';
-                btn.onclick = function() { document.body.removeChild(overlay); if (callback) callback(); };
+                btn.onclick = () => {
+                    document.body.removeChild(overlay);
+                    if (callback) callback();
+                };
             }
         }, 1000);
     }
 
     async function refresh() {
-        var d = await api('/api/state', 'POST');
+        const d = await api('/api/state', 'POST');
         if (d.logged_in) {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
@@ -142,11 +162,10 @@
             document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
             document.getElementById('ticketCount').textContent = d.ticket_count;
             document.getElementById('expectedJackpot').textContent = Number(d.expected_jackpot).toLocaleString();
-            // العد التنازلي
-            var remain = d.seconds_remaining;
-            var min = Math.floor(remain / 60);
-            var sec = remain % 60;
-            document.getElementById('drawTimer').textContent = '⏳ السحب القادم: ' + min + ':' + (sec<10?'0':'') + sec;
+            const remain = d.seconds_remaining;
+            const min = Math.floor(remain / 60);
+            const sec = remain % 60;
+            document.getElementById('drawTimer').textContent = `⏳ السحب القادم: ${min}:${sec.toString().padStart(2,'0')}`;
         } else {
             document.getElementById('authSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
@@ -154,58 +173,53 @@
     }
 
     async function login() {
-        var phone = document.getElementById('phoneInput').value.trim();
-        var pwd = document.getElementById('passwordInput').value.trim();
+        const phone = document.getElementById('phoneInput').value.trim();
+        const pwd = document.getElementById('passwordInput').value.trim();
         if (!phone || !pwd) return alert('املأ الحقول');
-        var d = await api('/api/login', 'POST', { phone, password: pwd });
+        const d = await api('/api/login', 'POST', { phone, password: pwd });
         if (d.error) alert(d.error);
         else { token = d.token; localStorage.setItem('token', token); refresh(); }
     }
 
     async function register() {
-        var phone = document.getElementById('phoneInput').value.trim();
-        var pwd = document.getElementById('passwordInput').value.trim();
+        const phone = document.getElementById('phoneInput').value.trim();
+        const pwd = document.getElementById('passwordInput').value.trim();
         if (!phone || !pwd) return alert('املأ الحقول');
-        var d = await api('/api/register', 'POST', { phone, password: pwd });
+        const d = await api('/api/register', 'POST', { phone, password: pwd });
         if (d.error) alert(d.error);
         else { token = d.token; localStorage.setItem('token', token); refresh(); }
     }
 
-    function logout() {
-        localStorage.removeItem('token'); token = ''; location.reload();
-    }
+    function logout() { localStorage.removeItem('token'); location.reload(); }
 
     function buyTicket() {
-        showAdPopup('شاهد الإعلان لشراء البطاقة', 15, async function() {
-            var d = await api('/api/buy', 'POST', {});
+        showAdPopup('شاهد الإعلان لشراء البطاقة', 15, async () => {
+            const d = await api('/api/buy', 'POST', {});
             if (d.error) alert(d.error);
-            else {
-                alert('✅ ' + d.message);
-                refresh();
-            }
+            else { alert(`✅ تم شراء البطاقة رقم ${d.ticket_number}`); refresh(); }
         });
     }
 
     function startSpin() {
-        showAdPopup('شاهد الإعلان للف العجلة', 15, async function() {
-            var d = await api('/api/spin', 'POST', {});
+        showAdPopup('شاهد الإعلان للف العجلة', 15, async () => {
+            const d = await api('/api/spin', 'POST', {});
             if (d.error) alert(d.error);
             else {
-                document.getElementById('spinResult').textContent = '🎉 ربحت ' + d.prize + ' ل.س!';
+                document.getElementById('spinResult').textContent = `🎉 ربحت ${d.prize} ل.س!`;
                 refresh();
             }
         });
     }
 
     function submitDeposit() {
-        var amt = parseInt(document.getElementById('depositAmount').value);
-        var file = document.getElementById('receiptFile').files[0];
+        const amt = parseInt(document.getElementById('depositAmount').value);
+        const file = document.getElementById('receiptFile').files[0];
         if (!amt || amt <= 0) return alert('أدخل مبلغاً');
         if (!file) return alert('اختر صورة الإيصال');
-        showAdPopup('شاهد الإعلان لإرسال الإيداع', 15, async function() {
-            var reader = new FileReader();
-            reader.onload = async function(e) {
-                var d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
+        showAdPopup('شاهد الإعلان لإرسال الإيداع', 15, async () => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
                 alert(d.message || d.error);
                 document.getElementById('receiptFile').value = '';
                 refresh();
@@ -215,11 +229,11 @@
     }
 
     function submitWithdraw() {
-        var acc = document.getElementById('withdrawAccount').value.trim();
-        var amt = parseInt(document.getElementById('withdrawAmount').value);
+        const acc = document.getElementById('withdrawAccount').value.trim();
+        const amt = parseInt(document.getElementById('withdrawAmount').value);
         if (!acc || !amt) return alert('املأ البيانات');
-        showAdPopup('شاهد الإعلان لإرسال السحب', 15, async function() {
-            var d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
+        showAdPopup('شاهد الإعلان لإرسال السحب', 15, async () => {
+            const d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
             alert(d.message || d.error);
             refresh();
         });
