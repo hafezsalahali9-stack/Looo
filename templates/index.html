@@ -28,6 +28,8 @@
         .spin-btn { background: #ff9800 !important; font-size: 20px !important; }
         .spin-result { font-size: 22px; color: #f5c542; font-weight: bold; margin: 10px 0; }
         .timer { color: #ff9800; font-weight: bold; }
+        .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
     </style>
 </head>
 <body>
@@ -73,8 +75,8 @@
     </div>
 
     <div class="spin-box">
-        <p>🎡 عجلة الحظ - اربح رصيداً مجانياً</p>
-        <p style="font-size:12px; color:#aaa;">يجب مشاهدة إعلان قبل اللعب</p>
+        <p>🎡 عجلة الحظ</p>
+        <p style="font-size:12px; color:#aaa;">شاهد إعلاناً واربح رصيداً مجانياً</p>
         <div class="spin-result" id="spinResult"></div>
         <div class="timer" id="spinTimer"></div>
         <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 شاهد إعلان ولف العجلة</button>
@@ -120,6 +122,39 @@
         return await res.json();
     }
 
+    function showAdPopup(title, seconds, callback) {
+        let overlay = document.createElement('div');
+        overlay.className = 'ad-overlay';
+        overlay.innerHTML = `<div class="ad-popup">
+            <h3 style="color:#f0c27a;">📢 ${title}</h3>
+            <div style="margin:15px 0; min-height:60px;">
+                <script>
+                  atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
+                </script>
+                <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
+            </div>
+            <p style="color:#ff9800; font-size:22px; font-weight:bold;" id="popCountdown">${seconds}</p>
+            <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white; font-size:16px;">⏳ انتظر ${seconds} ثوانٍ</button>
+        </div>`;
+        document.body.appendChild(overlay);
+        let sec = seconds;
+        let cd = setInterval(() => {
+            sec--;
+            document.getElementById('popCountdown').textContent = sec;
+            document.getElementById('popCloseBtn').textContent = `⏳ انتظر ${sec} ثوانٍ`;
+            if (sec <= 0) {
+                clearInterval(cd);
+                document.getElementById('popCloseBtn').disabled = false;
+                document.getElementById('popCloseBtn').textContent = '✅ متابعة';
+                document.getElementById('popCloseBtn').style.background = '#e94560';
+                document.getElementById('popCloseBtn').onclick = () => {
+                    document.body.removeChild(overlay);
+                    if (callback) callback();
+                };
+            }
+        }, 1000);
+    }
+
     let currentUser = null;
     let spinAvailable = true;
     let spinTimeout = null;
@@ -161,32 +196,9 @@
         }
     }
 
-    async function startSpin() {
+    function startSpin() {
         if (!spinAvailable) return alert('⏳ انتظر قليلاً');
-        let adModal = document.createElement('div');
-        adModal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; z-index:999;";
-        adModal.innerHTML = `<div style="background:#1a2745; padding:30px; border-radius:20px; text-align:center; max-width:350px;">
-            <h3 style="color:#f0c27a;">📢 إعلان</h3>
-            <p style="color:#ccc;">شاهد الإعلان للحصول على فرصة ربح</p>
-            <p style="color:#ff9800; font-size:24px; font-weight:bold;" id="adCountdown">5</p>
-            <button id="adCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white; font-size:16px;">⏳ انتظر...</button>
-        </div>`;
-        document.body.appendChild(adModal);
-        let sec = 5;
-        let cd = setInterval(() => {
-            sec--;
-            document.getElementById('adCountdown').textContent = sec;
-            if (sec <= 0) {
-                clearInterval(cd);
-                document.getElementById('adCloseBtn').disabled = false;
-                document.getElementById('adCloseBtn').textContent = '🎰 لف العجلة الآن!';
-                document.getElementById('adCloseBtn').style.background = '#e94560';
-                document.getElementById('adCloseBtn').onclick = async () => {
-                    document.body.removeChild(adModal);
-                    await doSpin();
-                };
-            }
-        }, 1000);
+        showAdPopup('شاهد الإعلان للف العجلة', 5, doSpin);
     }
 
     async function doSpin() {
@@ -222,35 +234,41 @@
 
     async function logout() { await api('/api/logout', 'POST'); location.reload(); }
 
-    async function buyTicket() {
-        let d = await api('/api/buy', 'POST');
-        alert(d.message || d.error);
-        refresh();
+    function buyTicket() {
+        showAdPopup('شاهد الإعلان لشراء البطاقة', 3, async () => {
+            let d = await api('/api/buy', 'POST');
+            alert(d.message || d.error);
+            refresh();
+        });
     }
 
-    async function submitDeposit() {
+    function submitDeposit() {
         let amt = parseInt(document.getElementById('depositAmount').value);
         let file = document.getElementById('receiptFile').files[0];
         if (!amt || amt <= 0) return alert('أدخل مبلغاً صحيحاً');
         if (!file) return alert('اختر صورة الإيصال');
-        let reader = new FileReader();
-        reader.onload = async function(e) {
-            let d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
-            alert(d.message || d.error);
-            document.getElementById('receiptFile').value = '';
-            document.getElementById('previewImg').style.display = 'none';
-            refresh();
-        };
-        reader.readAsDataURL(file);
+        showAdPopup('شاهد الإعلان لإرسال الإيداع', 3, async () => {
+            let reader = new FileReader();
+            reader.onload = async function(e) {
+                let d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
+                alert(d.message || d.error);
+                document.getElementById('receiptFile').value = '';
+                document.getElementById('previewImg').style.display = 'none';
+                refresh();
+            };
+            reader.readAsDataURL(file);
+        });
     }
 
-    async function submitWithdraw() {
+    function submitWithdraw() {
         let acc = document.getElementById('withdrawAccount').value.trim();
         let amt = parseInt(document.getElementById('withdrawAmount').value);
         if (!acc || !amt) return alert('املأ البيانات');
-        let d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
-        alert(d.message || d.error);
-        refresh();
+        showAdPopup('شاهد الإعلان لإرسال السحب', 3, async () => {
+            let d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
+            alert(d.message || d.error);
+            refresh();
+        });
     }
 
     function preview() {
