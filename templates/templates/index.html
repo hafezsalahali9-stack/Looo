@@ -79,7 +79,6 @@
             border-radius: 8px;
             margin: 10px 0;
         }
-        /* نافذة العجلة */
         .wheel-modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -141,7 +140,6 @@
 </head>
 <body>
 <div class="container" id="app">
-    <!-- قسم المصادقة -->
     <div id="authSection">
         <h1>🎰 يانصيب شام كاش</h1>
         <div class="card">
@@ -152,8 +150,6 @@
             <button onclick="register()" style="background:#4a6fa5;">تسجيل جديد</button>
         </div>
     </div>
-
-    <!-- اللوحة الرئيسية -->
     <div id="mainSection" class="hidden">
         <h1>🎰 يانصيب شام كاش</h1>
         <div class="card">
@@ -163,7 +159,6 @@
             <button id="buyBtn" onclick="buyTicket()">اشترِ بطاقة (10,000 ل.س)</button>
             <button onclick="logout()" style="background:#555;">تسجيل خروج</button>
         </div>
-
         <div class="card">
             <h2>📎 إيداع مع إيصال شام كاش</h2>
             <p style="font-size:14px;">ارفع صورة إشعار الحوالة</p>
@@ -173,7 +168,6 @@
             <button onclick="submitDeposit()">📤 إرسال طلب الإيداع</button>
             <div id="depositRequestsList" style="margin-top:10px; font-size:14px;"></div>
         </div>
-
         <div class="card">
             <h2>💸 سحب إلى شام كاش</h2>
             <input type="text" id="withdrawAccount" placeholder="رقم حساب شام كاش">
@@ -181,7 +175,6 @@
             <button onclick="requestWithdraw()">طلب سحب</button>
             <div id="withdrawRequestsList" style="margin-top:10px; font-size:14px;"></div>
         </div>
-
         <div class="card">
             <h2>🎡 العجلة المجانية</h2>
             <p>شاهد إعلاناً لتربح جوائز</p>
@@ -190,8 +183,6 @@
         </div>
     </div>
 </div>
-
-<!-- نافذة العجلة -->
 <div id="wheelModal" class="wheel-modal hidden" onclick="closeWheelModal(event)">
     <button class="close-btn" onclick="closeWheelModal(event)">✖</button>
     <div class="wheel-content" onclick="event.stopPropagation()">
@@ -199,7 +190,6 @@
         <div id="wheelWinner" class="winner-announce"></div>
     </div>
 </div>
-
 <script>
     let currentUser = null;
     let appState = { ticket_count: 0, lottery_active: false, winner_index: -1, winner_id: null, jackpot: 250000 };
@@ -233,7 +223,6 @@
             osc.start(t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2); osc.stop(t + 0.2);
         });
     }
-
     function showToast(msg) {
         const toast = document.createElement('div');
         toast.className = 'toast';
@@ -241,14 +230,12 @@
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     }
-
     async function apiFetch(url, method = 'GET', body = null) {
         const options = { method, headers: { 'Content-Type': 'application/json' } };
         if (body) options.body = JSON.stringify(body);
         const res = await fetch(url, options);
         return await res.json();
     }
-
     async function fetchState() {
         const data = await apiFetch('/api/state');
         if (data.logged_in) {
@@ -271,7 +258,6 @@
             document.getElementById('wheelModal').classList.add('hidden');
         }
     }
-
     async function login() {
         const phone = document.getElementById('phoneInput').value.trim();
         const password = document.getElementById('passwordInput').value.trim();
@@ -280,7 +266,6 @@
         if (data.error) alert(data.error);
         else fetchState();
     }
-
     async function register() {
         const phone = document.getElementById('phoneInput').value.trim();
         const password = document.getElementById('passwordInput').value.trim();
@@ -289,20 +274,17 @@
         if (data.error) alert(data.error);
         else fetchState();
     }
-
     async function logout() {
         await apiFetch('/api/logout', 'POST');
         currentUser = null;
         document.getElementById('authSection').classList.remove('hidden');
         document.getElementById('mainSection').classList.add('hidden');
     }
-
     async function buyTicket() {
         const data = await apiFetch('/api/buy', 'POST');
         if (data.error) alert(data.error);
         else fetchState();
     }
-
     async function submitDeposit() {
         const amount = parseInt(document.getElementById('receiptAmount').value);
         const file = document.getElementById('receiptFile').files[0];
@@ -319,7 +301,6 @@
         };
         reader.readAsDataURL(file);
     }
-
     async function requestWithdraw() {
         const account = document.getElementById('withdrawAccount').value.trim();
         const amount = parseInt(document.getElementById('withdrawAmount').value);
@@ -330,7 +311,6 @@
         document.getElementById('withdrawAmount').value = 10000;
         fetchState();
     }
-
     function previewReceipt() {
         const file = document.getElementById('receiptFile').files[0];
         if (!file) return;
@@ -341,14 +321,12 @@
         };
         reader.readAsDataURL(file);
     }
-
     async function startRewardedAd() {
         if (!currentUser) return;
         const now = Date.now() / 1000;
         if (currentUser.last_ad_time && (now - currentUser.last_ad_time < 30)) {
             return alert(`انتظر ${Math.ceil(30 - (now - currentUser.last_ad_time))} ثانية`);
         }
-        // محاكاة إعلان
         const modal = document.createElement('div');
         modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:100;";
         modal.innerHTML = `<div style="background:#1e2a4a; padding:25px; border-radius:20px; text-align:center; width:90%; max-width:350px;">
@@ -376,7 +354,6 @@
             }
         }, 1000);
     }
-
     function showLotteryWheel(winnerIdx) {
         wheelModal = document.getElementById('wheelModal');
         wheelCanvas = document.getElementById('wheelCanvas');
@@ -397,7 +374,6 @@
         if (animationId) cancelAnimationFrame(animationId);
         requestAnimationFrame(animateWheel);
     }
-
     function drawWheel(segments) {
         const cx = 160, cy = 160, r = 150;
         wheelCtx.clearRect(0, 0, 320, 320);
@@ -417,7 +393,6 @@
         wheelCtx.fillStyle = '#e94560'; wheelCtx.fill();
         wheelCtx.strokeStyle = '#fff'; wheelCtx.lineWidth = 3; wheelCtx.stroke();
     }
-
     function animateWheel(ts) {
         if (!wheelModal || wheelModal.classList.contains('hidden')) return;
         const elapsed = ts - animationStart;
@@ -437,12 +412,10 @@
             playWinSound();
         }
     }
-
     function closeWheelModal(event) {
         if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
         document.getElementById('wheelModal').classList.add('hidden');
     }
-
     setInterval(fetchState, 2000);
     window.onload = fetchState;
 </script>
