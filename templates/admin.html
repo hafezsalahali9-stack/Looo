@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة - يانصيب شام كاش</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0a0f1f; color: #eee; padding: 15px; }
+        h1 { color: #f0c27a; text-align: center; }
+        h2 { color: #ccc; margin: 20px 0 10px; border-bottom: 2px solid #e94560; padding-bottom: 5px; }
+        .card { background: #1a2745; padding: 15px; border-radius: 12px; margin: 10px 0; }
+        .deposit-card { background: #0f3460; padding: 15px; border-radius: 12px; margin: 10px 0; }
+        .deposit-card img { max-width: 100%; max-height: 250px; border-radius: 8px; margin: 10px 0; display: block; }
+        button { background: #2e7d32; color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; cursor: pointer; width: 100%; margin: 5px 0; }
+        button:active { transform: scale(0.96); }
+        .btn-red { background: #c62828 !important; }
+        .btn-blue { background: #1565c0 !important; }
+        .info { margin: 5px 0; font-size: 15px; }
+        .info span { color: #f5c542; font-weight: bold; }
+        .status { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; }
+        .status-pending { background: #f57f17; color: black; }
+        .status-done { background: #2e7d32; color: white; }
+        .empty { text-align: center; padding: 30px; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>🔑 لوحة تحكم الإدارة</h1>
+    
+    <button onclick="loadAll()" class="btn-blue">🔄 تحديث البيانات</button>
+    
+    <h2>📥 طلبات الإيداع المعلقة</h2>
+    <div id="depositsContainer"></div>
+    <button id="approveDepositsBtn" onclick="approveDeposits()">✅ تأكيد جميع الإيداعات المعلقة</button>
+    
+    <h2>📤 طلبات السحب المعلقة</h2>
+    <div id="withdrawalsContainer"></div>
+    <button id="approveWithdrawalsBtn" onclick="approveWithdrawals()">✅ تأكيد جميع طلبات السحب المعلقة</button>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="/" style="color: #4a6fa5;">← العودة للتطبيق</a>
+    </div>
+
+    <script>
+        async function apiFetch(url, method = 'GET') {
+            const res = await fetch(url, { method });
+            return await res.json();
+        }
+
+        async function loadAll() {
+            // تحميل الإيداعات
+            const depRes = await fetch('/api/admin/deposits');
+            const deps = await depRes.json();
+            let depHTML = '';
+            if (deps.length === 0) {
+                depHTML = '<div class="empty">📭 لا توجد طلبات إيداع معلقة</div>';
+            } else {
+                deps.forEach(d => {
+                    depHTML += `
+                        <div class="deposit-card">
+                            <div class="info">💰 المبلغ: <span>${Number(d.amount).toLocaleString()} ل.س</span></div>
+                            <div class="info">🕐 التاريخ: <span>${d.timestamp}</span></div>
+                            <div class="info">📌 الحالة: <span class="status ${d.status === 'معلق' ? 'status-pending' : 'status-done'}">${d.status}</span></div>
+                            ${d.image ? `<img src="${d.image}" alt="صورة الإيصال">` : '<p>لا توجد صورة</p>'}
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('depositsContainer').innerHTML = depHTML;
+
+            // تحميل السحوبات
+            const witRes = await fetch('/api/admin/withdrawals');
+            const wits = await witRes.json();
+            let witHTML = '';
+            if (wits.length === 0) {
+                witHTML = '<div class="empty">📭 لا توجد طلبات سحب معلقة</div>';
+            } else {
+                wits.forEach(w => {
+                    witHTML += `
+                        <div class="deposit-card">
+                            <div class="info">💸 المبلغ: <span>${Number(w.amount).toLocaleString()} ل.س</span></div>
+                            <div class="info">🔢 الحساب: <span>${w.account}</span></div>
+                            <div class="info">🕐 التاريخ: <span>${w.timestamp}</span></div>
+                            <div class="info">📌 الحالة: <span class="status ${w.status === 'معلق' ? 'status-pending' : 'status-done'}">${w.status}</span></div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('withdrawalsContainer').innerHTML = witHTML;
+        }
+
+        async function approveDeposits() {
+            if (!confirm('هل أنت متأكد من تأكيد جميع الإيداعات المعلقة؟')) return;
+            const data = await apiFetch('/admin/approve_deposits', 'POST');
+            alert(data.message || 'تم');
+            loadAll();
+        }
+
+        async function approveWithdrawals() {
+            if (!confirm('هل أنت متأكد من تأكيد جميع طلبات السحب المعلقة؟')) return;
+            const data = await apiFetch('/admin/approve_withdrawals', 'POST');
+            alert(data.message || 'تم');
+            loadAll();
+        }
+
+        window.onload = loadAll;
+    </script>
+</body>
+</html>
