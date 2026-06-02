@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>سلوتس الحظ - يانصيب شام كاش</title>
+    <style>
+        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 10px; text-align: center; }
+        h1 { color: #f0c27a; }
+        .slot-machine { background: #1a1a2e; border-radius: 20px; padding: 20px; margin: 15px auto; max-width: 350px; border: 2px solid gold; }
+        .reels { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+        .reel { width: 80px; height: 80px; background: black; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 50px; border: 2px solid gold; }
+        .score { font-size: 20px; color: #f5c542; }
+        button { background: #e94560; color: white; padding: 14px; border-radius: 30px; border: none; font-size: 18px; width: 100%; margin: 10px 0; cursor: pointer; }
+        button:disabled { background: #555; }
+        .ad-box { margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; padding: 5px; }
+        .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px 0; min-height: 60px; }
+        .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
+    </style>
+</head>
+<body>
+<h1>🎰 سلوتس الحظ</h1>
+<div class="ad-box" id="adTop"></div>
+<div class="slot-machine">
+    <div class="score">💰 رصيدك: <span id="balance">0</span> ل.س</div>
+    <div class="reels">
+        <div class="reel" id="r1">🍒</div>
+        <div class="reel" id="r2">🍒</div>
+        <div class="reel" id="r3">🍒</div>
+    </div>
+    <div id="msg" style="font-size:18px; margin:10px 0;"></div>
+    <button id="spinBtn" onclick="startSpin()">🎰 لف (500 ل.س)</button>
+</div>
+<div class="ad-box" id="adMid"></div>
+<a href="/" style="color:gold; display:block; margin:15px;">← العودة لليانصيب</a>
+<div class="ad-bottom" id="adFixed"></div>
+
+<script>
+    function loadAd(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
+    }
+    loadAd('adTop'); loadAd('adMid'); loadAd('adFixed');
+
+    var token = localStorage.getItem('token') || '';
+    async function api(url, body) {
+        var opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
+        if (body) { body.token = token; opts.body = JSON.stringify(body); }
+        else opts.body = JSON.stringify({ token: token });
+        var res = await fetch(url, opts);
+        return await res.json();
+    }
+
+    function showAdPopup(callback) {
+        var overlay = document.createElement('div');
+        overlay.className = 'ad-overlay';
+        overlay.innerHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 شاهد الإعلان للف السلوتس</h3><div id="popAd" style="margin:15px 0; min-height:60px;"></div><p style="color:#ff9800; font-size:22px;" id="popCountdown">5</p><button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button></div>';
+        document.body.appendChild(overlay);
+        document.getElementById('popAd').innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
+        var sec = 5;
+        var cd = setInterval(function() {
+            sec--;
+            document.getElementById('popCountdown').textContent = sec;
+            if (sec <= 0) {
+                clearInterval(cd);
+                var btn = document.getElementById('popCloseBtn');
+                btn.disabled = false;
+                btn.textContent = '🎰 لف الآن!';
+                btn.style.background = '#e94560';
+                btn.onclick = function() { document.body.removeChild(overlay); if (callback) callback(); };
+            }
+        }, 1000);
+    }
+
+    async function updateBalance() {
+        var d = await api('/api/state');
+        if (d.logged_in) document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
+        else window.location.href = '/';
+    }
+
+    function startSpin() {
+        showAdPopup(doSpin);
+    }
+
+    async function doSpin() {
+        var d = await api('/api/slots', {});
+        if (d.error) { alert(d.error); return; }
+        document.getElementById('r1').textContent = d.result[0];
+        document.getElementById('r2').textContent = d.result[1];
+        document.getElementById('r3').textContent = d.result[2];
+        document.getElementById('msg').textContent = d.win > 0 ? '🎉 ربحت ' + d.win + ' ل.س!' : '😢 حاول مرة أخرى';
+        document.getElementById('balance').textContent = Number(d.balance).toLocaleString();
+    }
+
+    updateBalance();
+</script>
+</body>
+</html>
