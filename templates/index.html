@@ -38,12 +38,7 @@
 <div id="authSection">
     <h1>🎰 يانصيب شام كاش</h1>
     
-    <div class="ad-box">
-        <script>
-          atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
-        </script>
-        <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
-    </div>
+    <div class="ad-box" id="ad1"></div>
     
     <div class="card">
         <h2>تسجيل الدخول</h2>
@@ -58,12 +53,7 @@
 <div id="mainSection" class="hidden">
     <h1>🎰 يانصيب شام كاش</h1>
     
-    <div class="ad-box">
-        <script>
-          atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
-        </script>
-        <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
-    </div>
+    <div class="ad-box" id="ad2"></div>
     
     <div class="card">
         <div class="info">💰 الرصيد: <span id="balance">0</span> ل.س</div>
@@ -80,12 +70,7 @@
         <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 شاهد إعلان ولف العجلة</button>
     </div>
 
-    <div class="ad-box">
-        <script>
-          atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
-        </script>
-        <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
-    </div>
+    <div class="ad-box" id="ad3"></div>
 
     <div class="card">
         <h2>📎 إيداع مع إيصال</h2>
@@ -105,48 +90,67 @@
 
 </div>
 
-<div class="ad-bottom">
-    <script>
-      atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};
-    </script>
-    <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
-</div>
+<div class="ad-bottom" id="ad4"></div>
 
 <script>
+    // تحميل الإعلانات
+    function loadAd(elId) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        var s1 = document.createElement('script');
+        s1.text = 'atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};';
+        el.appendChild(s1);
+        var s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        el.appendChild(s2);
+    }
+
+    loadAd('ad1');
+    loadAd('ad2');
+    loadAd('ad3');
+    loadAd('ad4');
+
     // ========== إدارة التوكن ==========
-    let token = localStorage.getItem('token') || '';
+    var token = localStorage.getItem('token') || '';
     
-    async function api(url, method = 'GET', body = null) {
+    async function api(url, method, body) {
         method = method || 'GET';
-        let opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+        var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
         if (body) {
             body.token = token;
             opts.body = JSON.stringify(body);
         } else if (method === 'POST') {
             opts.body = JSON.stringify({ token: token });
         }
-        let res = await fetch(url, opts);
+        var res = await fetch(url, opts);
         return await res.json();
     }
 
     function showAdPopup(title, seconds, callback) {
-        let overlay = document.createElement('div');
+        var overlay = document.createElement('div');
         overlay.className = 'ad-overlay';
-        overlay.innerHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ' + title + '</h3>' +
-            '<div style="margin:15px 0; min-height:60px;">' +
-            '<script>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</script>' +
-            '<script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>' +
-            '</div>' +
+        var popupHTML = '<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ' + title + '</h3>' +
+            '<div id="popAdContainer" style="margin:15px 0; min-height:60px;"></div>' +
             '<p style="color:#ff9800; font-size:22px; font-weight:bold;" id="popCountdown">' + seconds + '</p>' +
             '<button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white; font-size:16px;">⏳ انتظر</button></div>';
+        overlay.innerHTML = popupHTML;
         document.body.appendChild(overlay);
-        let sec = seconds;
-        let cd = setInterval(function() {
+        // تحميل الإعلان داخل popup
+        var popAdDiv = document.getElementById('popAdContainer');
+        var s1 = document.createElement('script');
+        s1.text = 'atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};';
+        popAdDiv.appendChild(s1);
+        var s2 = document.createElement('script');
+        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
+        popAdDiv.appendChild(s2);
+        
+        var sec = seconds;
+        var cd = setInterval(function() {
             sec--;
             document.getElementById('popCountdown').textContent = sec;
             if (sec <= 0) {
                 clearInterval(cd);
-                let btn = document.getElementById('popCloseBtn');
+                var btn = document.getElementById('popCloseBtn');
                 btn.disabled = false;
                 btn.textContent = '✅ متابعة';
                 btn.style.background = '#e94560';
@@ -159,11 +163,11 @@
     }
 
     // ========== التطبيق ==========
-    let currentUser = null;
-    let spinAvailable = true;
+    var currentUser = null;
+    var spinAvailable = true;
 
     async function refresh() {
-        let d = await api('/api/state', 'POST');
+        var d = await api('/api/state', 'POST');
         if (d.logged_in) {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
@@ -171,9 +175,9 @@
             document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
             document.getElementById('freeBalance').textContent = Number(d.user.free_balance).toLocaleString();
             document.getElementById('ticketCount').textContent = d.ticket_count;
-            let now = Date.now() / 1000;
-            let diff = now - (d.user.last_spin_time || 0);
-            let remain = Math.max(0, 60 - Math.floor(diff));
+            var now = Date.now() / 1000;
+            var diff = now - (d.user.last_spin_time || 0);
+            var remain = Math.max(0, 60 - Math.floor(diff));
             if (remain > 0) {
                 spinAvailable = false;
                 document.getElementById('spinBtn').disabled = true;
@@ -200,7 +204,7 @@
     }
 
     async function doSpin() {
-        let d = await api('/api/spin', 'POST', {});
+        var d = await api('/api/spin', 'POST', {});
         if (d.error) alert(d.error);
         else {
             document.getElementById('spinResult').textContent = '🎉 ربحت ' + d.prize + ' ل.س!';
@@ -213,10 +217,10 @@
     }
 
     async function login() {
-        let phone = document.getElementById('phoneInput').value.trim();
-        let pwd = document.getElementById('passwordInput').value.trim();
+        var phone = document.getElementById('phoneInput').value.trim();
+        var pwd = document.getElementById('passwordInput').value.trim();
         if (!phone || !pwd) return showAuthMsg('املأ جميع الحقول', 'err');
-        let d = await api('/api/login', 'POST', { phone: phone, password: pwd });
+        var d = await api('/api/login', 'POST', { phone: phone, password: pwd });
         if (d.error) showAuthMsg(d.error, 'err');
         else {
             token = d.token;
@@ -226,10 +230,10 @@
     }
 
     async function register() {
-        let phone = document.getElementById('phoneInput').value.trim();
-        let pwd = document.getElementById('passwordInput').value.trim();
+        var phone = document.getElementById('phoneInput').value.trim();
+        var pwd = document.getElementById('passwordInput').value.trim();
         if (!phone || !pwd) return showAuthMsg('املأ جميع الحقول', 'err');
-        let d = await api('/api/register', 'POST', { phone: phone, password: pwd });
+        var d = await api('/api/register', 'POST', { phone: phone, password: pwd });
         if (d.error) showAuthMsg(d.error, 'err');
         else {
             token = d.token;
@@ -248,21 +252,21 @@
 
     function buyTicket() {
         showAdPopup('شاهد الإعلان لشراء البطاقة', 3, async function() {
-            let d = await api('/api/buy', 'POST', {});
+            var d = await api('/api/buy', 'POST', {});
             alert(d.message || d.error);
             refresh();
         });
     }
 
     function submitDeposit() {
-        let amt = parseInt(document.getElementById('depositAmount').value);
-        let file = document.getElementById('receiptFile').files[0];
+        var amt = parseInt(document.getElementById('depositAmount').value);
+        var file = document.getElementById('receiptFile').files[0];
         if (!amt || amt <= 0) return alert('أدخل مبلغاً صحيحاً');
         if (!file) return alert('اختر صورة الإيصال');
         showAdPopup('شاهد الإعلان لإرسال الإيداع', 3, async function() {
-            let reader = new FileReader();
+            var reader = new FileReader();
             reader.onload = async function(e) {
-                let d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
+                var d = await api('/api/deposit', 'POST', { amount: amt, image: e.target.result });
                 alert(d.message || d.error);
                 document.getElementById('receiptFile').value = '';
                 document.getElementById('previewImg').style.display = 'none';
@@ -273,20 +277,20 @@
     }
 
     function submitWithdraw() {
-        let acc = document.getElementById('withdrawAccount').value.trim();
-        let amt = parseInt(document.getElementById('withdrawAmount').value);
+        var acc = document.getElementById('withdrawAccount').value.trim();
+        var amt = parseInt(document.getElementById('withdrawAmount').value);
         if (!acc || !amt) return alert('املأ البيانات');
         showAdPopup('شاهد الإعلان لإرسال السحب', 3, async function() {
-            let d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
+            var d = await api('/api/withdraw', 'POST', { account: acc, amount: amt });
             alert(d.message || d.error);
             refresh();
         });
     }
 
     function preview() {
-        let file = document.getElementById('receiptFile').files[0];
+        var file = document.getElementById('receiptFile').files[0];
         if (!file) return;
-        let reader = new FileReader();
+        var reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('previewImg').src = e.target.result;
             document.getElementById('previewImg').style.display = 'block';
