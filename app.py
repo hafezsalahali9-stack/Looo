@@ -1,450 +1,290 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>يانصيب شام كاش</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: #0a0f1f;
-            color: #e0e0e0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 10px;
-        }
-        .container {
-            width: 100%;
-            max-width: 440px;
-            background: #121a2f;
-            border-radius: 24px;
-            padding: 20px 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-        h1 { color: #f0c27a; text-align: center; margin-bottom: 16px; font-size: 26px; }
-        h2 { margin: 10px 0; font-size: 20px; }
-        .card {
-            background: #1a2745;
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 16px;
-        }
-        .balance-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            font-size: 17px;
-        }
-        .balance-row span { color: #f5c542; font-weight: bold; }
-        .ticket-info {
-            background: #0f203a;
-            padding: 10px;
-            border-radius: 10px;
-            text-align: center;
-            margin: 12px 0;
-            font-size: 18px;
-        }
-        button {
-            background: #e94560;
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 30px;
-            font-size: 18px;
-            width: 100%;
-            margin: 8px 0;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:active { transform: scale(0.96); }
-        button:disabled { background: #4a4a6a; cursor: not-allowed; }
-        .ad-btn { background: #3b82f6; }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 6px 0;
-            border-radius: 12px;
-            border: 1px solid #2e3b55;
-            background: #0b1324;
-            color: white;
-            font-size: 16px;
-        }
-        .hidden { display: none !important; }
-        .receipt-preview {
-            max-width: 100%;
-            max-height: 150px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        /* نافذة العجلة */
-        .wheel-modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-            cursor: pointer;
-        }
-        .wheel-content { cursor: default; }
-        .wheel-modal .close-btn {
-            position: absolute;
-            top: 20px; right: 20px;
-            background: #e94560;
-            color: white;
-            border: none;
-            font-size: 28px;
-            width: 50px; height: 50px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center; justify-content: center;
-            box-shadow: 0 0 10px black;
-            z-index: 10;
-        }
-        #wheelCanvas {
-            border-radius: 50%;
-            box-shadow: 0 0 40px rgba(240,194,122,0.8);
-        }
-        .winner-announce {
-            color: #f0c27a;
-            font-size: 28px;
-            margin-top: 20px;
-            font-weight: bold;
-            text-shadow: 0 0 10px black;
-            text-align: center;
-        }
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #f0c27a;
-            color: #0a0f1f;
-            padding: 15px 25px;
-            border-radius: 30px;
-            font-weight: bold;
-            z-index: 300;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.6);
-            animation: slideUp 0.5s ease;
-        }
-        @keyframes slideUp {
-            from { bottom: -100px; opacity: 0; }
-            to { bottom: 30px; opacity: 1; }
-        }
-    </style>
-</head>
-<body>
-<div class="container" id="app">
-    <!-- قسم المصادقة -->
-    <div id="authSection">
-        <h1>🎰 يانصيب شام كاش</h1>
-        <div class="card">
-            <h2>دخول / تسجيل</h2>
-            <input type="text" id="phoneInput" placeholder="رقم الهاتف">
-            <input type="password" id="passwordInput" placeholder="كلمة المرور">
-            <button onclick="login()">دخول</button>
-            <button onclick="register()" style="background:#4a6fa5;">تسجيل جديد</button>
-        </div>
-    </div>
+import sqlite3
+import random
+import time
+import threading
+from flask import Flask, render_template, request, jsonify, session, g
 
-    <!-- اللوحة الرئيسية -->
-    <div id="mainSection" class="hidden">
-        <h1>🎰 يانصيب شام كاش</h1>
-        <div class="card">
-            <div class="balance-row">💰 الرصيد: <span id="balance">0</span> ل.س</div>
-            <div class="balance-row">🎁 رصيد مجاني: <span id="freeBalance">0</span> ل.س</div>
-            <div class="ticket-info">🎫 البطاقات المباعة: <span id="ticketCount">0</span> / 50</div>
-            <button id="buyBtn" onclick="buyTicket()">اشترِ بطاقة (10,000 ل.س)</button>
-            <button onclick="logout()" style="background:#555;">تسجيل خروج</button>
-        </div>
+app = Flask(__name__)
+app.secret_key = 'clave-secreta-2024-unica'
 
-        <div class="card">
-            <h2>📎 إيداع مع إيصال شام كاش</h2>
-            <p style="font-size:14px;">ارفع صورة إشعار الحوالة</p>
-            <input type="file" id="receiptFile" accept="image/*" onchange="previewReceipt()">
-            <img id="receiptPreview" class="receipt-preview hidden" src="" alt="معاينة">
-            <input type="number" id="receiptAmount" placeholder="المبلغ" value="10000">
-            <button onclick="submitDeposit()">📤 إرسال طلب الإيداع</button>
-            <div id="depositRequestsList" style="margin-top:10px; font-size:14px;"></div>
-        </div>
+DATABASE = 'lottery.db'
+JACKPOT = 250000
+TICKET_PRICE = 10000
+MAX_TICKETS = 50
+AD_COOLDOWN = 30
 
-        <div class="card">
-            <h2>💸 سحب إلى شام كاش</h2>
-            <input type="text" id="withdrawAccount" placeholder="رقم حساب شام كاش">
-            <input type="number" id="withdrawAmount" placeholder="المبلغ" value="10000">
-            <button onclick="requestWithdraw()">طلب سحب</button>
-            <div id="withdrawRequestsList" style="margin-top:10px; font-size:14px;"></div>
-        </div>
+# ========== قاعدة البيانات ==========
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
 
-        <div class="card">
-            <h2>🎡 العجلة المجانية</h2>
-            <p>شاهد إعلاناً لتربح جوائز</p>
-            <button class="ad-btn" id="adSpinBtn" onclick="startRewardedAd()">▶ شاهد إعلان + لف العجلة</button>
-            <div id="freeSpinResult" style="margin-top:10px; font-weight:bold;"></div>
-        </div>
-    </div>
-</div>
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
-<!-- نافذة العجلة -->
-<div id="wheelModal" class="wheel-modal hidden" onclick="closeWheelModal(event)">
-    <button class="close-btn" onclick="closeWheelModal(event)">✖</button>
-    <div class="wheel-content" onclick="event.stopPropagation()">
-        <canvas id="wheelCanvas" width="320" height="320"></canvas>
-        <div id="wheelWinner" class="winner-announce"></div>
-    </div>
-</div>
+def init_db():
+    with app.app_context():
+        db = get_db()
+        db.executescript('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                name TEXT,
+                balance INTEGER DEFAULT 0,
+                free_balance INTEGER DEFAULT 0,
+                last_ad_time REAL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                ticket_number INTEGER NOT NULL,
+                round_id INTEGER DEFAULT 1,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            );
+            CREATE TABLE IF NOT EXISTS app_state (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            );
+            CREATE TABLE IF NOT EXISTS pending_deposits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                image TEXT,
+                timestamp TEXT,
+                status TEXT DEFAULT 'معلق'
+            );
+            CREATE TABLE IF NOT EXISTS pending_withdrawals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                account TEXT NOT NULL,
+                amount INTEGER NOT NULL,
+                timestamp TEXT,
+                status TEXT DEFAULT 'معلق'
+            );
+            INSERT OR IGNORE INTO app_state (key, value) VALUES ('ticket_count', '0');
+            INSERT OR IGNORE INTO app_state (key, value) VALUES ('lottery_active', '0');
+            INSERT OR IGNORE INTO app_state (key, value) VALUES ('winner_id', '');
+            INSERT OR IGNORE INTO app_state (key, value) VALUES ('winner_index', '-1');
+        ''')
+        db.commit()
 
-<script>
-    let currentUser = null;
-    let appState = { ticket_count: 0, lottery_active: false, winner_index: -1, winner_id: null, jackpot: 250000 };
-    let wheelCanvas, wheelCtx, wheelModal, wheelWinnerDiv;
-    let spinAngle = 0, spinTarget = 0, selectedWinnerIndex = -1;
-    let animationId = null, animationStart = 0, lastTickSound = 0;
-    let audioCtx = null;
+# ========== دوال الحالة ==========
+def get_state(key):
+    db = get_db()
+    row = db.execute('SELECT value FROM app_state WHERE key = ?', (key,)).fetchone()
+    return row['value'] if row else ''
 
-    function initAudio() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+def set_state(key, value):
+    db = get_db()
+    db.execute('INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)', (key, str(value)))
+    db.commit()
+
+def get_current_user():
+    if 'user_id' in session:
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        return dict(user) if user else None
+    return None
+
+# ========== التوجيهات ==========
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/state')
+def api_state():
+    user = get_current_user()
+    state = {
+        'ticket_count': int(get_state('ticket_count')),
+        'lottery_active': get_state('lottery_active') == '1',
+        'winner_id': get_state('winner_id'),
+        'winner_index': int(get_state('winner_index')),
+        'jackpot': JACKPOT,
+        'logged_in': user is not None,
+        'user': None
     }
-    function playTickSound() {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square'; osc.frequency.value = 800;
-        gain.gain.value = 0.05;
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start();
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-        osc.stop(audioCtx.currentTime + 0.05);
-    }
-    function playWinSound() {
-        if (!audioCtx) return;
-        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle'; osc.frequency.value = f; gain.gain.value = 0.1;
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            const t = audioCtx.currentTime + i * 0.15;
-            osc.start(t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2); osc.stop(t + 0.2);
-        });
-    }
-
-    function showToast(msg) {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-
-    async function apiFetch(url, method = 'GET', body = null) {
-        const options = { method, headers: { 'Content-Type': 'application/json' } };
-        if (body) options.body = JSON.stringify(body);
-        const res = await fetch(url, options);
-        return await res.json();
-    }
-
-    async function fetchState() {
-        const data = await apiFetch('/api/state');
-        if (data.logged_in) {
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('mainSection').classList.remove('hidden');
-            currentUser = data.user;
-            appState = data;
-            document.getElementById('balance').textContent = currentUser.balance.toLocaleString();
-            document.getElementById('freeBalance').textContent = currentUser.freeBalance.toLocaleString();
-            document.getElementById('ticketCount').textContent = appState.ticket_count;
-            document.getElementById('buyBtn').disabled = (appState.ticket_count >= 50 || appState.lottery_active || currentUser.balance < 10000);
-            if (appState.lottery_active) {
-                showLotteryWheel(appState.winner_index);
-            } else {
-                document.getElementById('wheelModal').classList.add('hidden');
-            }
-        } else {
-            document.getElementById('authSection').classList.remove('hidden');
-            document.getElementById('mainSection').classList.add('hidden');
-            document.getElementById('wheelModal').classList.add('hidden');
+    if user:
+        state['user'] = {
+            'id': user['id'],
+            'balance': user['balance'],
+            'free_balance': user['free_balance'],
+            'last_ad_time': user['last_ad_time']
         }
-    }
+    return jsonify(state)
 
-    async function login() {
-        const phone = document.getElementById('phoneInput').value.trim();
-        const password = document.getElementById('passwordInput').value.trim();
-        if (!phone || !password) return alert('املأ الحقول');
-        const data = await apiFetch('/api/login', 'POST', { phone, password });
-        if (data.error) alert(data.error);
-        else fetchState();
-    }
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.json
+    phone = data.get('phone', '').strip()
+    password = data.get('password', '').strip()
+    if not phone or not password:
+        return jsonify({'error': 'الرجاء ملء الحقول'}), 400
+    db = get_db()
+    if db.execute('SELECT id FROM users WHERE phone = ?', (phone,)).fetchone():
+        return jsonify({'error': 'رقم الهاتف مسجل مسبقاً'}), 400
+    db.execute('INSERT INTO users (phone, password, name) VALUES (?, ?, ?)', (phone, password, phone))
+    db.commit()
+    user_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+    session['user_id'] = user_id
+    return jsonify({'message': 'تم التسجيل'})
 
-    async function register() {
-        const phone = document.getElementById('phoneInput').value.trim();
-        const password = document.getElementById('passwordInput').value.trim();
-        if (!phone || !password) return alert('املأ الحقول');
-        const data = await apiFetch('/api/register', 'POST', { phone, password });
-        if (data.error) alert(data.error);
-        else fetchState();
-    }
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+    phone = data.get('phone', '').strip()
+    password = data.get('password', '').strip()
+    if not phone or not password:
+        return jsonify({'error': 'الرجاء ملء الحقول'}), 400
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE phone = ? AND password = ?', (phone, password)).fetchone()
+    if not user:
+        return jsonify({'error': 'بيانات خاطئة'}), 401
+    session['user_id'] = user['id']
+    return jsonify({'message': 'تم الدخول'})
 
-    async function logout() {
-        await apiFetch('/api/logout', 'POST');
-        currentUser = null;
-        document.getElementById('authSection').classList.remove('hidden');
-        document.getElementById('mainSection').classList.add('hidden');
-    }
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    session.pop('user_id', None)
+    return jsonify({'message': 'تم الخروج'})
 
-    async function buyTicket() {
-        const data = await apiFetch('/api/buy', 'POST');
-        if (data.error) alert(data.error);
-        else fetchState();
-    }
+@app.route('/api/buy', methods=['POST'])
+def api_buy():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'سجل الدخول أولاً'}), 401
 
-    async function submitDeposit() {
-        const amount = parseInt(document.getElementById('receiptAmount').value);
-        const file = document.getElementById('receiptFile').files[0];
-        if (!amount || amount <= 0) return alert('أدخل مبلغاً صحيحاً');
-        if (!file) return alert('اختر صورة الإيصال');
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const image = e.target.result;
-            const data = await apiFetch('/api/deposit_request', 'POST', { amount, image });
-            alert(data.message || data.error);
-            document.getElementById('receiptFile').value = '';
-            document.getElementById('receiptPreview').classList.add('hidden');
-            fetchState();
-        };
-        reader.readAsDataURL(file);
-    }
+    db = get_db()
+    try:
+        with db:
+            user_balance = db.execute('SELECT balance FROM users WHERE id = ?', (user['id'],)).fetchone()['balance']
+            if user_balance < TICKET_PRICE:
+                return jsonify({'error': 'رصيدك غير كافٍ'}), 400
 
-    async function requestWithdraw() {
-        const account = document.getElementById('withdrawAccount').value.trim();
-        const amount = parseInt(document.getElementById('withdrawAmount').value);
-        if (!account || !amount || amount <= 0) return alert('املأ البيانات');
-        const data = await apiFetch('/api/withdraw_request', 'POST', { account, amount });
-        alert(data.message || data.error);
-        document.getElementById('withdrawAccount').value = '';
-        document.getElementById('withdrawAmount').value = 10000;
-        fetchState();
-    }
+            ticket_count = int(get_state('ticket_count'))
+            if ticket_count >= MAX_TICKETS or get_state('lottery_active') == '1':
+                return jsonify({'error': 'اكتملت البطاقات أو السحب جارٍ'}), 400
 
-    function previewReceipt() {
-        const file = document.getElementById('receiptFile').files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            document.getElementById('receiptPreview').src = e.target.result;
-            document.getElementById('receiptPreview').classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-    }
+            db.execute('UPDATE users SET balance = balance - ? WHERE id = ?', (TICKET_PRICE, user['id']))
+            new_number = ticket_count + 1
+            db.execute('INSERT INTO tickets (user_id, ticket_number) VALUES (?, ?)', (user['id'], new_number))
+            set_state('ticket_count', str(new_number))
 
-    async function startRewardedAd() {
-        if (!currentUser) return;
-        const now = Date.now() / 1000;
-        if (currentUser.last_ad_time && (now - currentUser.last_ad_time < 30)) {
-            return alert(`انتظر ${Math.ceil(30 - (now - currentUser.last_ad_time))} ثانية`);
-        }
-        // محاكاة إعلان
-        const modal = document.createElement('div');
-        modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:100;";
-        modal.innerHTML = `<div style="background:#1e2a4a; padding:25px; border-radius:20px; text-align:center; width:90%; max-width:350px;">
-            <h3>📢 إعلان</h3><p id="adTimer">10 ثوانٍ</p>
-            <button id="closeAdBtn" disabled>انتظر...</button></div>`;
-        document.body.appendChild(modal);
-        let sec = 10;
-        const timer = modal.querySelector('#adTimer');
-        const btn = modal.querySelector('#closeAdBtn');
-        const iv = setInterval(() => {
-            sec--; timer.textContent = `${sec} ثوانٍ`;
-            if (sec <= 0) {
-                clearInterval(iv);
-                btn.disabled = false;
-                btn.textContent = 'اغلق واربح جائزتك';
-                btn.onclick = async () => {
-                    document.body.removeChild(modal);
-                    const data = await apiFetch('/api/free_spin', 'POST');
-                    if (data.error) alert(data.error);
-                    else {
-                        document.getElementById('freeSpinResult').textContent = `🎁 ربحت ${data.prize.toLocaleString()} ل.س رصيد مجاني!`;
-                        fetchState();
-                    }
-                };
-            }
-        }, 1000);
-    }
+            if new_number == MAX_TICKETS:
+                threading.Thread(target=perform_lottery_draw).start()
 
-    function showLotteryWheel(winnerIdx) {
-        wheelModal = document.getElementById('wheelModal');
-        wheelCanvas = document.getElementById('wheelCanvas');
-        wheelCtx = wheelCanvas.getContext('2d');
-        wheelWinnerDiv = document.getElementById('wheelWinner');
-        wheelWinnerDiv.textContent = '';
-        wheelModal.classList.remove('hidden');
-        initAudio();
-        const totalTickets = 50;
-        selectedWinnerIndex = winnerIdx;
-        drawWheel(totalTickets);
-        const seg = 360 / totalTickets;
-        const target = 360 - (selectedWinnerIndex * seg + seg / 2);
-        spinTarget = 360 * 8 + target;
-        spinAngle = 0;
-        animationStart = performance.now();
-        lastTickSound = 0;
-        if (animationId) cancelAnimationFrame(animationId);
-        requestAnimationFrame(animateWheel);
-    }
+        return jsonify({'message': f'تم شراء البطاقة رقم {new_number}', 'ticket_count': new_number})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    function drawWheel(segments) {
-        const cx = 160, cy = 160, r = 150;
-        wheelCtx.clearRect(0, 0, 320, 320);
-        const segAngle = (2 * Math.PI) / segments;
-        const cols = ['#f0c27a', '#4a6fa5'];
-        for (let i = 0; i < segments; i++) {
-            const s = i * segAngle, e = (i + 1) * segAngle;
-            wheelCtx.beginPath(); wheelCtx.moveTo(cx, cy);
-            wheelCtx.arc(cx, cy, r, s, e); wheelCtx.closePath();
-            wheelCtx.fillStyle = cols[i % 2]; wheelCtx.fill();
-            wheelCtx.strokeStyle = '#1a2745'; wheelCtx.lineWidth = 2; wheelCtx.stroke();
-            wheelCtx.save(); wheelCtx.translate(cx, cy); wheelCtx.rotate(s + segAngle / 2);
-            wheelCtx.fillStyle = '#fff'; wheelCtx.font = 'bold 14px Tahoma';
-            wheelCtx.fillText(i + 1, r * 0.7, 5); wheelCtx.restore();
-        }
-        wheelCtx.beginPath(); wheelCtx.arc(cx, cy, 30, 0, 2 * Math.PI);
-        wheelCtx.fillStyle = '#e94560'; wheelCtx.fill();
-        wheelCtx.strokeStyle = '#fff'; wheelCtx.lineWidth = 3; wheelCtx.stroke();
-    }
+def perform_lottery_draw():
+    with app.app_context():
+        db = get_db()
+        try:
+            tickets = db.execute('SELECT * FROM tickets WHERE round_id = 1').fetchall()
+            if len(tickets) != MAX_TICKETS:
+                return
+            winner_ticket = random.choice(tickets)
+            winner_id = winner_ticket['user_id']
+            winner_index = list(tickets).index(winner_ticket)
 
-    function animateWheel(ts) {
-        if (!wheelModal || wheelModal.classList.contains('hidden')) return;
-        const elapsed = ts - animationStart;
-        const progress = Math.min(elapsed / 5000, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
-        spinAngle = ease * spinTarget;
-        wheelCanvas.style.transform = `rotate(${spinAngle}deg)`;
-        if (elapsed - lastTickSound > 100) { playTickSound(); lastTickSound = elapsed; }
-        if (progress < 1) animationId = requestAnimationFrame(animateWheel);
-        else {
-            if (appState.winner_id === currentUser.id) {
-                wheelWinnerDiv.textContent = `🎊 مبروك! أنت الفائز!`;
-                showToast(`💰 أضيفت الجائزة إلى رصيدك`);
-            } else {
-                wheelWinnerDiv.textContent = `الفائز: بطاقة رقم ${selectedWinnerIndex + 1}`;
-            }
-            playWinSound();
-        }
-    }
+            set_state('lottery_active', '1')
+            set_state('winner_id', str(winner_id))
+            set_state('winner_index', str(winner_index))
 
-    function closeWheelModal(event) {
-        if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
-        document.getElementById('wheelModal').classList.add('hidden');
-    }
+            db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (JACKPOT, winner_id))
+            db.commit()
 
-    setInterval(fetchState, 2000);
-    window.onload = fetchState;
-</script>
-</body>
-</html>
+            time.sleep(5)
+            db.execute('DELETE FROM tickets WHERE round_id = 1')
+            set_state('ticket_count', '0')
+            set_state('lottery_active', '0')
+            set_state('winner_id', '')
+            set_state('winner_index', '-1')
+            db.commit()
+        except Exception as e:
+            print(f"خطأ في السحب: {e}")
+
+@app.route('/api/deposit_request', methods=['POST'])
+def deposit_request():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'تسجيل الدخول أولاً'}), 401
+    data = request.json
+    amount = data.get('amount')
+    image = data.get('image')
+    if not amount or amount <= 0:
+        return jsonify({'error': 'مبلغ غير صحيح'}), 400
+    db = get_db()
+    db.execute('INSERT INTO pending_deposits (user_id, amount, image, timestamp) VALUES (?, ?, ?, ?)',
+               (user['id'], amount, image, time.strftime('%Y-%m-%d %H:%M')))
+    db.commit()
+    return jsonify({'message': 'تم إرسال الطلب للمراجعة'})
+
+@app.route('/api/withdraw_request', methods=['POST'])
+def withdraw_request():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'تسجيل الدخول أولاً'}), 401
+    data = request.json
+    account = data.get('account', '').strip()
+    amount = data.get('amount')
+    if not account or amount <= 0:
+        return jsonify({'error': 'بيانات ناقصة'}), 400
+    if amount > user['balance']:
+        return jsonify({'error': 'رصيدك لا يكفي'}), 400
+    db = get_db()
+    db.execute('INSERT INTO pending_withdrawals (user_id, account, amount, timestamp) VALUES (?, ?, ?, ?)',
+               (user['id'], account, amount, time.strftime('%Y-%m-%d %H:%M')))
+    db.commit()
+    return jsonify({'message': 'تم إرسال طلب السحب للمراجعة'})
+
+@app.route('/api/free_spin', methods=['POST'])
+def free_spin():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'تسجيل الدخول أولاً'}), 401
+    now = time.time()
+    if now - user['last_ad_time'] < AD_COOLDOWN:
+        remain = int(AD_COOLDOWN - (now - user['last_ad_time']))
+        return jsonify({'error': f'انتظر {remain} ثانية'}), 429
+    prizes = [500, 1000, 2000, 5000, 10000, 20000, 30000, 50000]
+    prize = random.choice(prizes)
+    db = get_db()
+    db.execute('UPDATE users SET free_balance = free_balance + ?, last_ad_time = ? WHERE id = ?',
+               (prize, now, user['id']))
+    db.commit()
+    return jsonify({'prize': prize, 'free_balance': user['free_balance'] + prize})
+
+@app.route('/admin/approve_deposits', methods=['POST'])
+def admin_approve_deposits():
+    db = get_db()
+    deposits = db.execute('SELECT * FROM pending_deposits WHERE status = ?', ('معلق',)).fetchall()
+    for dep in deposits:
+        db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (dep['amount'], dep['user_id']))
+        db.execute('UPDATE pending_deposits SET status = ? WHERE id = ?', ('مؤكد', dep['id']))
+    db.commit()
+    return jsonify({'message': 'تم تأكيد الإيداعات'})
+
+@app.route('/admin/approve_withdrawals', methods=['POST'])
+def admin_approve_withdrawals():
+    db = get_db()
+    withdrawals = db.execute('SELECT * FROM pending_withdrawals WHERE status = ?', ('معلق',)).fetchall()
+    for w in withdrawals:
+        user = db.execute('SELECT balance FROM users WHERE id = ?', (w['user_id'],)).fetchone()
+        if user and user['balance'] >= w['amount']:
+            db.execute('UPDATE users SET balance = balance - ? WHERE id = ?', (w['amount'], w['user_id']))
+            db.execute('UPDATE pending_withdrawals SET status = ? WHERE id = ?', ('مؤكد', w['id']))
+        else:
+            db.execute('UPDATE pending_withdrawals SET status = ? WHERE id = ?', ('مرفوض', w['id']))
+    db.commit()
+    return jsonify({'message': 'تمت معالجة طلبات السحب'})
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5000, debug=True)
