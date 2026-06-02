@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>يانصيب شام كاش</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #eee; text-align: center; padding: 20px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="authSection">
+        <h1>🎰 يانصيب شام كاش</h1>
+        <input type="text" id="phoneInput" placeholder="رقم الهاتف"><br>
+        <input type="password" id="passwordInput" placeholder="كلمة المرور"><br>
+        <button onclick="login()">دخول</button>
+        <button onclick="register()">تسجيل جديد</button>
+    </div>
+    <div id="mainSection" class="hidden">
+        <h1>🎰 يانصيب شام كاش</h1>
+        <p>رصيد: <span id="balance">0</span> ل.س</p>
+        <p>بطاقات: <span id="ticketCount">0</span>/50</p>
+        <button onclick="buyTicket()">شراء بطاقة (10,000 ل.س)</button>
+        <button onclick="logout()">تسجيل خروج</button>
+    </div>
+    <script>
+        let currentUser = null;
+        let appState = { ticket_count: 0 };
+        async function apiFetch(url, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            const res = await fetch(url, options);
+            return await res.json();
+        }
+        async function fetchState() {
+            const data = await apiFetch('/api/state');
+            if (data.logged_in) {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('mainSection').classList.remove('hidden');
+                currentUser = data.user;
+                document.getElementById('balance').textContent = currentUser.balance;
+                document.getElementById('ticketCount').textContent = data.ticket_count;
+            } else {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('mainSection').classList.add('hidden');
+            }
+        }
+        async function login() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+            if (!phone || !password) return alert('املأ الحقول');
+            const data = await apiFetch('/api/login', 'POST', { phone, password });
+            if (data.error) alert(data.error); else fetchState();
+        }
+        async function register() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+            if (!phone || !password) return alert('املأ الحقول');
+            const data = await apiFetch('/api/register', 'POST', { phone, password });
+            if (data.error) alert(data.error); else fetchState();
+        }
+        async function logout() {
+            await apiFetch('/api/logout', 'POST');
+            currentUser = null;
+            location.reload();
+        }
+        async function buyTicket() {
+            const data = await apiFetch('/api/buy', 'POST');
+            if (data.error) alert(data.error); else fetchState();
+        }
+        setInterval(fetchState, 2000);
+        window.onload = fetchState;
+    </script>
+</body>
+</html>
