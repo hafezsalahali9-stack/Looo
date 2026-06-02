@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>يانصيب شام كاش</title>
     <style>
-        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 10px; margin: 0; }
-        .card { background: #1a2745; padding: 18px; border-radius: 15px; margin: 10px auto; max-width: 400px; }
+        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 0; margin: 0; }
+        .container { max-width: 400px; margin: auto; padding: 10px; padding-bottom: 100px; }
+        .card { background: #1a2745; padding: 18px; border-radius: 15px; margin: 10px 0; }
         h1 { color: #f0c27a; text-align: center; font-size: 24px; margin: 10px 0; }
         h2 { color: #ccc; font-size: 18px; margin: 5px 0 10px; }
         input, button { display: block; width: 100%; padding: 12px; margin: 8px 0; border-radius: 25px; border: none; font-size: 16px; box-sizing: border-box; }
@@ -19,12 +20,31 @@
         .ok { background: #2e7d32; }
         .err { background: #c62828; }
         img.preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin: 5px 0; display: none; }
+        .ad-box { text-align: center; margin: 10px 0; min-height: 50px; }
+        .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; z-index: 100; background: #0a0f1f; padding: 5px 0; }
     </style>
 </head>
 <body>
 
+<div class="container" id="app">
+
 <div id="authSection">
     <h1>🎰 يانصيب شام كاش</h1>
+    
+    <!-- إعلان علوي -->
+    <div class="ad-box">
+        <script>
+          atOptions = {
+            'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
+    </div>
+    
     <div class="card">
         <h2>تسجيل الدخول</h2>
         <div id="authMsg"></div>
@@ -38,12 +58,39 @@
 <div id="mainSection" class="hidden">
     <h1>🎰 يانصيب شام كاش</h1>
     
+    <!-- إعلان علوي -->
+    <div class="ad-box">
+        <script>
+          atOptions = {
+            'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
+    </div>
+    
     <div class="card">
         <div class="info">💰 الرصيد: <span id="balance">0</span> ل.س</div>
-        <div class="info">🎁 رصيد مجاني: <span id="freeBalance">0</span> ل.س</div>
         <div class="info">🎫 البطاقات: <span id="ticketCount">0</span> / 50</div>
         <button id="buyBtn" onclick="buyTicket()">🛒 شراء بطاقة (10,000 ل.س)</button>
         <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
+    </div>
+
+    <!-- إعلان وسطي -->
+    <div class="ad-box">
+        <script>
+          atOptions = {
+            'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
     </div>
 
     <div class="card">
@@ -60,13 +107,22 @@
         <input type="number" id="withdrawAmount" placeholder="💰 المبلغ" value="10000">
         <button onclick="submitWithdraw()">📤 طلب سحب</button>
     </div>
+</div>
 
-    <div class="card">
-        <h2>🎡 العجلة المجانية</h2>
-        <p style="font-size:14px; color:#aaa;">شاهد إعلاناً واربح رصيداً مجانياً</p>
-        <button onclick="freeSpin()" style="background:#3b82f6;">▶ شاهد إعلان + لف العجلة</button>
-        <div id="spinResult" style="margin-top:10px; font-weight:bold; color:#f5c542;"></div>
-    </div>
+</div>
+
+<!-- إعلان سفلي ثابت -->
+<div class="ad-bottom">
+    <script>
+      atOptions = {
+        'key' : '4c94b3494e679d2ca0fb7acdf61e6aba',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></script>
 </div>
 
 <script>
@@ -83,7 +139,6 @@
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
-            document.getElementById('freeBalance').textContent = Number(d.user.free_balance).toLocaleString();
             document.getElementById('ticketCount').textContent = d.ticket_count;
         } else {
             document.getElementById('authSection').classList.remove('hidden');
@@ -113,12 +168,11 @@
         else { showAuthMsg('✅ تم التسجيل', 'ok'); refresh(); }
     }
 
-    async function logout() {
-        await api('/api/logout', 'POST');
-        location.reload();
-    }
+    async function logout() { await api('/api/logout', 'POST'); location.reload(); }
 
     async function buyTicket() {
+        let ad = confirm('📢 إعلان سريع:\n\nهل تريد متابعة شراء البطاقة؟');
+        if (!ad) return;
         let d = await api('/api/buy', 'POST');
         alert(d.message || d.error);
         refresh();
@@ -158,15 +212,6 @@
             document.getElementById('previewImg').style.display = 'block';
         };
         reader.readAsDataURL(file);
-    }
-
-    async function freeSpin() {
-        let d = await api('/api/spin', 'POST');
-        if (d.error) alert(d.error);
-        else {
-            document.getElementById('spinResult').textContent = `🎁 ربحت ${d.prize.toLocaleString()} ل.س رصيد مجاني!`;
-            refresh();
-        }
     }
 
     refresh();
