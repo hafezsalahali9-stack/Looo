@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, jsonify, session
-import sqlite3, random, time, threading, string, os
+from flask import Flask, render_template, request, jsonify
+import sqlite3, random, time, threading, string
 
 app = Flask(__name__)
 app.secret_key = 'secret-key-2024'
@@ -68,8 +68,7 @@ def ss(k, v):
     db.close()
 
 def get_user_by_token(token):
-    if not token:
-        return None
+    if not token: return None
     db = get_db()
     u = db.execute('SELECT * FROM users WHERE token=?', (token,)).fetchone()
     db.close()
@@ -82,6 +81,10 @@ def index():
 @app.route('/admin')
 def admin():
     return render_template('admin.html')
+
+@app.route('/games')
+def games():
+    return render_template('games.html')
 
 @app.route('/api/state', methods=['POST'])
 def api_state():
@@ -105,8 +108,7 @@ def register():
     d = request.get_json()
     ph = d.get('phone', '').strip()
     pw = d.get('password', '').strip()
-    if not ph or not pw:
-        return jsonify({'error': 'املأ الحقول'})
+    if not ph or not pw: return jsonify({'error': 'املأ الحقول'})
     db = get_db()
     if db.execute('SELECT id FROM users WHERE phone=?', (ph,)).fetchone():
         db.close()
@@ -114,7 +116,6 @@ def register():
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     db.execute('INSERT INTO users (phone, password, token) VALUES (?,?,?)', (ph, pw, token))
     db.commit()
-    uid = db.execute('SELECT id FROM users WHERE phone=?', (ph,)).fetchone()['id']
     db.close()
     return jsonify({'message': 'تم التسجيل', 'token': token})
 
@@ -125,9 +126,7 @@ def login():
     pw = d.get('password', '').strip()
     db = get_db()
     u = db.execute('SELECT * FROM users WHERE phone=? AND password=?', (ph, pw)).fetchone()
-    if not u:
-        db.close()
-        return jsonify({'error': 'بيانات خاطئة'})
+    if not u: db.close(); return jsonify({'error': 'بيانات خاطئة'})
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     db.execute('UPDATE users SET token=? WHERE id=?', (token, u['id']))
     db.commit()
@@ -139,34 +138,26 @@ def buy():
     data = request.get_json()
     token = data.get('token', '') if data else ''
     user = get_user_by_token(token)
-    if not user:
-        return jsonify({'error': 'سجل الدخول'})
+    if not user: return jsonify({'error': 'سجل الدخول'})
     db = get_db()
     u = db.execute('SELECT * FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < 10000:
-        db.close()
-        return jsonify({'error': 'رصيد غير كاف'})
+    if u['balance'] < 10000: db.close(); return jsonify({'error': 'رصيد غير كاف'})
     tc = int(gs('tickets'))
-    if tc >= 50 or gs('active') == '1':
-        db.close()
-        return jsonify({'error': 'اكتملت البطاقات'})
+    if tc >= 50 or gs('active') == '1': db.close(); return jsonify({'error': 'اكتملت البطاقات'})
     db.execute('UPDATE users SET balance=balance-10000 WHERE id=?', (user['id'],))
     nn = tc + 1
     db.execute('INSERT INTO tickets (user_id, ticket_number) VALUES (?,?)', (user['id'], nn))
     db.commit()
     ss('tickets', str(nn))
     db.close()
-    if nn == 50:
-        threading.Thread(target=draw).start()
+    if nn == 50: threading.Thread(target=draw).start()
     return jsonify({'message': f'تم شراء البطاقة رقم {nn}'})
 
 def draw():
     time.sleep(2)
     db = get_db()
     tickets = db.execute('SELECT * FROM tickets').fetchall()
-    if len(tickets) != 50:
-        db.close()
-        return
+    if len(tickets) != 50: db.close(); return
     w = random.choice(tickets)
     ss('active', '1')
     ss('winner_id', str(w['user_id']))
@@ -187,8 +178,7 @@ def spin():
     data = request.get_json()
     token = data.get('token', '') if data else ''
     user = get_user_by_token(token)
-    if not user:
-        return jsonify({'error': 'سجل الدخول'})
+    if not user: return jsonify({'error': 'سجل الدخول'})
     db = get_db()
     u = db.execute('SELECT * FROM users WHERE id=?', (user['id'],)).fetchone()
     now = time.time()
@@ -196,7 +186,6 @@ def spin():
         remain = int(60 - (now - u['last_spin_time']))
         db.close()
         return jsonify({'error': f'انتظر {remain} ثانية'})
-    # جوائز صغيرة جداً
     prizes = [10, 15, 20, 25, 30, 40, 50, 75, 100]
     prize = random.choice(prizes)
     db.execute('UPDATE users SET free_balance=free_balance+?, last_spin_time=? WHERE id=?',
@@ -210,12 +199,10 @@ def deposit():
     data = request.get_json()
     token = data.get('token', '') if data else ''
     user = get_user_by_token(token)
-    if not user:
-        return jsonify({'error': 'سجل الدخول'})
+    if not user: return jsonify({'error': 'سجل الدخول'})
     amt = data.get('amount')
     img = data.get('image')
-    if not amt or amt <= 0:
-        return jsonify({'error': 'مبلغ غير صحيح'})
+    if not amt or amt <= 0: return jsonify({'error': 'مبلغ غير صحيح'})
     db = get_db()
     db.execute('INSERT INTO deposits (user_id, amount, image, timestamp) VALUES (?,?,?,?)',
                (user['id'], amt, img, time.strftime('%Y-%m-%d %H:%M')))
@@ -228,17 +215,13 @@ def withdraw():
     data = request.get_json()
     token = data.get('token', '') if data else ''
     user = get_user_by_token(token)
-    if not user:
-        return jsonify({'error': 'سجل الدخول'})
+    if not user: return jsonify({'error': 'سجل الدخول'})
     acc = data.get('account', '').strip()
     amt = data.get('amount')
-    if not acc or not amt or amt <= 0:
-        return jsonify({'error': 'بيانات ناقصة'})
+    if not acc or not amt or amt <= 0: return jsonify({'error': 'بيانات ناقصة'})
     db = get_db()
     u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < amt:
-        db.close()
-        return jsonify({'error': 'رصيد غير كاف'})
+    if u['balance'] < amt: db.close(); return jsonify({'error': 'رصيد غير كاف'})
     db.execute('INSERT INTO withdrawals (user_id, account, amount, timestamp) VALUES (?,?,?,?)',
                (user['id'], acc, amt, time.strftime('%Y-%m-%d %H:%M')))
     db.commit()
