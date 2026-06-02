@@ -25,8 +25,8 @@
         .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
         .countdown { font-size: 22px; color: #ff9800; margin: 10px 0; }
         .msg { padding: 10px; border-radius: 10px; margin: 8px 0; }
-        .ok { background: #2e7d32; }
-        .err { background: #c62828; }
+        .ok { background: #2e7d32; } .err { background: #c62828; }
+        .request-item { font-size:13px; margin:3px 0; padding:5px; background:#0f3460; border-radius:5px; }
     </style>
 </head>
 <body>
@@ -41,7 +41,7 @@
             <input type="password" id="passwordInput" placeholder="كلمة المرور">
             <button onclick="login()">🔑 دخول</button>
             <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
-            <p style="font-size:12px; color:#aaa; margin-top:8px;">إذا كان لديك حساب مسبق، اضغط <strong>دخول</strong>. إذا لم تسجل بعد، اضغط <strong>تسجيل جديد</strong>.</p>
+            <p style="font-size:12px; color:#aaa; margin-top:8px;">إذا كان لديك حساب مسبق، اضغط <strong>دخول</strong>.</p>
         </div>
     </div>
 
@@ -88,12 +88,20 @@
             <input type="number" id="withdrawAmount" placeholder="المبلغ" value="10000">
             <button onclick="submitWithdraw()">طلب سحب</button>
         </div>
+
+        <div class="card">
+            <h2>📋 طلباتي</h2>
+            <div id="myRequests"><p style="color:#aaa;">سجل الدخول لعرض طلباتك</p></div>
+        </div>
     </div>
 </div>
 
 <div class="ad-bottom" id="ad4"></div>
 
 <script>
+    // كود Popunder
+    window.popunderCode = '<script src="https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js"><\/script>';
+
     function loadAd(elId) {
         const el = document.getElementById(elId);
         if (!el) return;
@@ -119,17 +127,25 @@
     function showAdPopup(title, seconds, callback) {
         const overlay = document.createElement('div');
         overlay.className = 'ad-overlay';
-        overlay.innerHTML = `<div class="ad-popup"><h3 style="color:#f0c27a;">📢 ${title}</h3>
-            <div id="popAdContainer" style="margin:15px 0; min-height:60px;"></div>
+        overlay.innerHTML = `<div class="ad-popup">
+            <h3 style="color:#f0c27a;">📢 ${title}</h3>
+            <div id="popAdContainer" style="margin:15px 0; min-height:250px; background:#000; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                <span style="color:#aaa;">⏳ جاري تحميل الإعلان...</span>
+            </div>
             <p style="color:#ff9800; font-size:22px;" id="popCountdown">${seconds}</p>
-            <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button></div>`;
+            <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button>
+        </div>`;
         document.body.appendChild(overlay);
-        const adDiv = document.getElementById('popAdContainer');
-        const s1 = document.createElement('script');
-        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
-        const s2 = document.createElement('script');
-        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
-        adDiv.appendChild(s1); adDiv.appendChild(s2);
+
+        const adContainer = document.getElementById('popAdContainer');
+        // دمج Popunder + محاكاة فيديو
+        adContainer.innerHTML = window.popunderCode + `
+            <div style="width:100%; height:250px; background:linear-gradient(45deg,#1a1a2e,#0f3460); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; margin-top:10px;">
+                <span style="font-size:50px;">▶️</span>
+                <p>إعلان فيديو</p>
+                <p style="font-size:12px; color:#aaa;">يمكنك التخطي بعد ${seconds} ثانية</p>
+            </div>`;
+
         let sec = seconds;
         const cd = setInterval(() => {
             sec--;
@@ -138,9 +154,12 @@
                 clearInterval(cd);
                 const btn = document.getElementById('popCloseBtn');
                 btn.disabled = false;
-                btn.textContent = '✅ متابعة';
+                btn.textContent = '⏭️ تخطي الإعلان';
                 btn.style.background = '#e94560';
-                btn.onclick = () => { document.body.removeChild(overlay); if (callback) callback(); };
+                btn.onclick = () => {
+                    document.body.removeChild(overlay);
+                    if (callback) callback();
+                };
             }
         }, 1000);
     }
@@ -158,10 +177,34 @@
             const min = Math.floor(remain / 60);
             const sec = remain % 60;
             document.getElementById('drawTimer').textContent = `⏳ السحب القادم: ${min}:${sec.toString().padStart(2,'0')}`;
+            loadMyRequests();
         } else {
             document.getElementById('authSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
         }
+    }
+
+    async function loadMyRequests() {
+        if (!token) return;
+        const d = await api('/api/my_requests', 'POST', {});
+        let html = '';
+        if (d.deposits.length === 0 && d.withdrawals.length === 0) {
+            html = '<p style="color:#aaa;">لا توجد طلبات</p>';
+        } else {
+            if (d.deposits.length > 0) {
+                html += '<p><strong>📥 الإيداعات:</strong></p>';
+                d.deposits.forEach(r => {
+                    html += `<div class="request-item">${r.amount} ل.س - ${r.timestamp} - <span style="color:${r.status==='مؤكد'?'#2e7d32':'#f57f17'}">${r.status}</span></div>`;
+                });
+            }
+            if (d.withdrawals.length > 0) {
+                html += '<p><strong>📤 السحوبات:</strong></p>';
+                d.withdrawals.forEach(r => {
+                    html += `<div class="request-item">${r.amount} ل.س إلى ${r.account} - ${r.timestamp} - <span style="color:${r.status==='مؤكد'?'#2e7d32':'#f57f17'}">${r.status}</span></div>`;
+                });
+            }
+        }
+        document.getElementById('myRequests').innerHTML = html;
     }
 
     async function login() {
