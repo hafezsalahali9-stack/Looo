@@ -2,96 +2,47 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة - يانصيب iChansy</title>
+    <title>إدارة يانصيب iChansy</title>
     <style>
         body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 15px; }
-        h1 { color: #f0c27a; text-align: center; }
-        h2 { color: #ccc; border-bottom: 2px solid #e94560; padding-bottom: 5px; }
         .card { background: #0f3460; padding: 15px; border-radius: 12px; margin: 10px 0; }
-        .card img { max-width: 100%; max-height: 250px; border-radius: 8px; display: block; margin: 10px 0; }
-        button { background: #2e7d32; color: white; border: none; padding: 12px; border-radius: 25px; font-size: 16px; width: 100%; margin: 5px 0; cursor: pointer; }
+        .card img { max-width: 100%; max-height: 250px; border-radius: 8px; }
+        button { background: #2e7d32; color: white; border: none; padding: 12px; border-radius: 25px; width: 100%; margin: 5px 0; cursor: pointer; }
         .btn-red { background: #c62828; }
-        .btn-blue { background: #1565c0; }
-        .info { margin: 5px 0; }
-        .info span { color: #f5c542; font-weight: bold; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; }
-        .badge-pending { background: #f57f17; color: black; }
-        .badge-done { background: #2e7d32; color: white; }
     </style>
 </head>
 <body>
     <h1>🔑 لوحة الإدارة</h1>
-    <button class="btn-blue" onclick="loadAll()">🔄 تحديث</button>
-
-    <h2>📥 طلبات الإيداع</h2>
-    <div id="deposits"></div>
-    <button onclick="approveDeposits()">✅ تأكيد جميع الإيداعات</button>
-
-    <h2>📤 طلبات السحب</h2>
-    <div id="withdrawals"></div>
-    <button onclick="approveWithdrawals()">✅ تأكيد جميع السحوبات</button>
-
-    <button class="btn-red" onclick="resetUsers()" style="margin-top:25px;">⚠️ تصفير جميع الحسابات</button>
-
-    <p style="text-align:center; margin-top:20px;"><a href="/" style="color:#4a6fa5;">العودة للتطبيق</a></p>
+    <button onclick="loadAll()">🔄 تحديث</button>
+    <h2>📥 الإيداعات</h2>
+    <div id="deps"></div>
+    <button onclick="approve('/admin/approve-deposits')">✅ تأكيد الإيداعات</button>
+    <h2>📤 السحوبات</h2>
+    <div id="wits"></div>
+    <button onclick="approve('/admin/approve-withdrawals')">✅ تأكيد السحوبات</button>
+    <button class="btn-red" onclick="resetUsers()">⚠️ تصفير الحسابات</button>
 
     <script>
-        async function api(url, method = 'GET', body = null) {
-            const opts = { method, headers: { 'Content-Type': 'application/json' } };
-            if (body) opts.body = JSON.stringify(body);
-            const res = await fetch(url, opts);
-            return await res.json();
+        async function api(url, m='GET', b=null) {
+            const o = {method:m, headers:{'Content-Type':'application/json'}};
+            if(b) o.body = JSON.stringify(b);
+            const r = await fetch(url, o);
+            return await r.json();
         }
-
         async function loadAll() {
             const deps = await api('/api/admin/deposits');
-            let html = '';
-            if (deps.length === 0) html = '<p>لا توجد طلبات</p>';
-            else deps.forEach(d => {
-                html += `<div class="card">
-                    <div class="info">💰 المبلغ: <span>${Number(d.amount).toLocaleString()} ل.س</span></div>
-                    <div class="info">🕐 ${d.timestamp} | <span class="badge ${d.status==='معلق'?'badge-pending':'badge-done'}">${d.status}</span></div>
-                    ${d.image ? `<img src="${d.image}" alt="إيصال">` : ''}
-                </div>`;
-            });
-            document.getElementById('deposits').innerHTML = html;
-
+            document.getElementById('deps').innerHTML = deps.length===0 ? '<p>لا توجد</p>' : deps.map(d=>`<div class="card">${d.amount} ل.س - ${d.status} ${d.image?`<img src="${d.image}">`:''}</div>`).join('');
             const wits = await api('/api/admin/withdrawals');
-            html = '';
-            if (wits.length === 0) html = '<p>لا توجد طلبات</p>';
-            else wits.forEach(w => {
-                html += `<div class="card">
-                    <div class="info">💸 المبلغ: <span>${Number(w.amount).toLocaleString()} ل.س</span></div>
-                    <div class="info">🔢 الحساب: <span>${w.account}</span></div>
-                    <div class="info">🕐 ${w.timestamp} | <span class="badge ${w.status==='معلق'?'badge-pending':'badge-done'}">${w.status}</span></div>
-                </div>`;
-            });
-            document.getElementById('withdrawals').innerHTML = html;
+            document.getElementById('wits').innerHTML = wits.length===0 ? '<p>لا توجد</p>' : wits.map(w=>`<div class="card">${w.amount} ل.س إلى ${w.account} - ${w.status}</div>`).join('');
         }
-
-        async function approveDeposits() {
-            if (!confirm('تأكيد جميع الإيداعات؟')) return;
-            const d = await api('/admin/approve-deposits', 'POST');
-            alert(d.message);
-            loadAll();
-        }
-
-        async function approveWithdrawals() {
-            if (!confirm('تأكيد جميع السحوبات؟')) return;
-            const d = await api('/admin/approve-withdrawals', 'POST');
-            alert(d.message);
-            loadAll();
-        }
-
+        async function approve(url) { if(confirm('تأكيد؟')) { const d=await api(url,'POST'); alert(d.message); loadAll(); } }
         async function resetUsers() {
-            const pass = prompt('أدخل كلمة المرور لتصفير الحسابات:');
-            if (!pass) return;
-            const d = await api('/api/admin/reset_users', 'POST', { password: pass });
-            alert(d.message || d.error);
+            const pw = prompt('كلمة المرور:');
+            if(!pw) return;
+            const d = await api('/api/admin/reset_users','POST',{password:pw});
+            alert(d.message||d.error);
             loadAll();
         }
-
         loadAll();
     </script>
 </body>
