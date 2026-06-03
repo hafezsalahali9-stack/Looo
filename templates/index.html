@@ -21,7 +21,7 @@
         .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px 0; min-height: 60px; z-index: 100; }
         .spin-box { background: #1a1a2e; border: 2px dashed #f0c27a; padding: 15px; border-radius: 15px; text-align: center; margin: 10px 0; }
         .spin-btn { background: #ff9800 !important; font-size: 20px !important; }
-        .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; display: flex; align-items: center; justify-content: center; }
         .ad-popup { background: #1a2745; padding: 20px; border-radius: 20px; text-align: center; max-width: 350px; width: 90%; }
         .countdown { font-size: 22px; color: #ff9800; margin: 10px 0; }
         .msg { padding: 10px; border-radius: 10px; margin: 8px 0; }
@@ -50,6 +50,7 @@
         <div class="ad-box" id="ad2"></div>
         <div class="card">
             <div class="info">💰 رصيدك: <span id="balance">0</span> ل.س</div>
+            <div class="info">🎁 رصيد مجاني: <span id="freeBalance">0</span> ل.س</div>
             <div class="info">🎫 البطاقات المباعة: <span id="ticketCount">0</span></div>
             <div class="info">🏆 الجائزة المتوقعة: <span id="expectedJackpot">0</span> ل.س</div>
             <div class="countdown" id="drawTimer">⏳ السحب القادم: --:--</div>
@@ -99,17 +100,14 @@
 <div class="ad-bottom" id="ad4"></div>
 
 <script>
-    // كود Popunder
-    window.popunderCode = '<script src="https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js"><\/script>';
+    // كود Popunder + بانر
+    const POPUNDER_CODE = '<scr' + 'ipt src="https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js"></scr' + 'ipt>';
 
     function loadAd(elId) {
         const el = document.getElementById(elId);
         if (!el) return;
-        const s1 = document.createElement('script');
-        s1.text = `atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};`;
-        const s2 = document.createElement('script');
-        s2.src = 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js';
-        el.appendChild(s1); el.appendChild(s2);
+        el.innerHTML = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt>' +
+                       '<scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
     }
     loadAd('ad1'); loadAd('ad2'); loadAd('ad3'); loadAd('ad4');
 
@@ -127,24 +125,27 @@
     function showAdPopup(title, seconds, callback) {
         const overlay = document.createElement('div');
         overlay.className = 'ad-overlay';
-        overlay.innerHTML = `<div class="ad-popup">
-            <h3 style="color:#f0c27a;">📢 ${title}</h3>
-            <div id="popAdContainer" style="margin:15px 0; min-height:250px; background:#000; border-radius:10px; display:flex; align-items:center; justify-content:center;">
-                <span style="color:#aaa;">⏳ جاري تحميل الإعلان...</span>
+        overlay.innerHTML = `
+            <div class="ad-popup">
+                <h3 style="color:#f0c27a;">📢 ${title}</h3>
+                <div id="popAdContainer" style="margin:15px 0; min-height:250px; background:#000; border-radius:10px; overflow:hidden;">
+                    <div style="padding:10px; color:#aaa;">⏳ جاري تحميل الإعلان...</div>
+                </div>
+                <p style="color:#ff9800; font-size:22px;" id="popCountdown">${seconds}</p>
+                <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button>
             </div>
-            <p style="color:#ff9800; font-size:22px;" id="popCountdown">${seconds}</p>
-            <button id="popCloseBtn" disabled style="background:#555; padding:10px 20px; border:none; border-radius:20px; color:white;">⏳ انتظر</button>
-        </div>`;
+        `;
         document.body.appendChild(overlay);
 
         const adContainer = document.getElementById('popAdContainer');
-        // دمج Popunder + محاكاة فيديو
-        adContainer.innerHTML = window.popunderCode + `
-            <div style="width:100%; height:250px; background:linear-gradient(45deg,#1a1a2e,#0f3460); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; margin-top:10px;">
-                <span style="font-size:50px;">▶️</span>
+        // إدراج Popunder + محاكاة فيديو
+        adContainer.innerHTML = POPUNDER_CODE + `
+            <div style="width:100%; height:200px; background:linear-gradient(45deg,#1a1a2e,#0f3460); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff;">
+                <span style="font-size:48px;">▶️</span>
                 <p>إعلان فيديو</p>
                 <p style="font-size:12px; color:#aaa;">يمكنك التخطي بعد ${seconds} ثانية</p>
-            </div>`;
+            </div>
+        `;
 
         let sec = seconds;
         const cd = setInterval(() => {
@@ -171,6 +172,7 @@
             document.getElementById('mainSection').classList.remove('hidden');
             currentUser = d.user;
             document.getElementById('balance').textContent = Number(d.user.balance).toLocaleString();
+            document.getElementById('freeBalance').textContent = Number(d.user.free_balance).toLocaleString();
             document.getElementById('ticketCount').textContent = d.ticket_count;
             document.getElementById('expectedJackpot').textContent = Number(d.expected_jackpot).toLocaleString();
             const remain = d.seconds_remaining;
