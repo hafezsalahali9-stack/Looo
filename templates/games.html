@@ -9,8 +9,7 @@
         .game-area { background: #1a1a2e; border-radius: 20px; padding: 20px; margin: 15px auto; max-width: 400px; display: none; }
         .reel { display: inline-block; width: 70px; height: 70px; background: black; border-radius: 10px; font-size: 40px; line-height: 70px; margin: 5px; border: 2px solid gold; }
         button { background: #e94560; color: white; padding: 12px; border-radius: 25px; border: none; font-size: 16px; width: 100%; margin: 8px 0; cursor: pointer; }
-        .ad-box { margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; padding: 5px; }
-        .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px 0; min-height: 60px; }
+        .ad-box { margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -53,26 +52,10 @@
     <p id="pokerMsg"></p>
 </div>
 
-<div class="ad-box" id="adMid"></div>
-<a href="/" style="color:gold;">العودة لليانصيب</a>
-<div class="ad-bottom" id="adFixed"></div>
+<a href="/" style="color:gold; display:block; margin:15px;">العودة لليانصيب</a>
 
 <script>
     const token = localStorage.getItem('token')||'';
-    const BANNER = '<scr'+'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr'+'ipt><scr'+'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr'+'ipt>';
-    function loadAd(id) {
-        const el = document.getElementById(id);
-        if(!el) return;
-        const div = document.createElement('div');
-        div.innerHTML = BANNER;
-        Array.from(div.querySelectorAll('script')).forEach(s=>{
-            const ns = document.createElement('script');
-            if(s.src) ns.src=s.src; else ns.textContent=s.textContent;
-            el.appendChild(ns);
-        });
-    }
-    loadAd('adTop'); loadAd('adMid'); loadAd('adFixed');
-
     async function api(url, body={}) {
         body.token = token;
         const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
