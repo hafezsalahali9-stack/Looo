@@ -8,15 +8,13 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma; background: #0a0f1f; color: #eee; padding: 10px; }
         .container { max-width: 420px; margin: auto; padding-bottom: 80px; }
-        .card { background: linear-gradient(180deg, #1a2745, #0f1a33); padding: 18px; border-radius: 16px; margin: 10px 0; border: 1px solid #2a3a55; }
-        h1 { color: #f0c27a; text-align: center; font-size: 28px; text-shadow: 0 0 10px rgba(240,194,122,0.5); }
+        .card { background: #1a2745; padding: 18px; border-radius: 16px; margin: 10px 0; border: 1px solid #2a3a55; }
+        h1 { color: #f0c27a; text-align: center; font-size: 28px; }
         h2 { font-size: 18px; margin: 5px 0; color: #ddd; }
         input, button { width: 100%; padding: 14px; margin: 6px 0; border-radius: 25px; border: none; font-size: 16px; }
         input { background: #0d1b33; color: white; text-align: center; border: 1px solid #3a4a6a; }
-        button { background: #e94560; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button { background: #e94560; color: white; font-weight: bold; cursor: pointer; }
         button:active { transform: scale(0.95); }
-        .btn-green { background: #2e7d32 !important; }
-        .btn-blue { background: #4a6fa5 !important; }
         .btn-gold { background: linear-gradient(45deg, #f0c27a, #d4a84b) !important; color: #000 !important; }
         .hidden { display: none !important; }
         .info { background: #0f3460; padding: 10px; border-radius: 10px; margin: 6px 0; font-size: 15px; }
@@ -26,6 +24,8 @@
         .msg { padding: 10px; border-radius: 10px; margin: 6px 0; text-align: center; }
         .ok { background: #2e7d32; } .err { background: #c62828; }
         .ticket-item { display: inline-block; background: #0f3460; padding: 6px 12px; border-radius: 20px; margin: 3px; font-size: 14px; }
+        .ad-box { margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px; min-height: 60px; z-index: 100; display: flex; align-items: center; justify-content: center; }
         
         /* عجلة السحب */
         .wheel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -33,15 +33,11 @@
         #wheelCanvas { border-radius: 50%; box-shadow: 0 0 40px rgba(240,194,122,0.8); }
         .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #e94560; z-index: 10; }
         .wheel-winner { color: #f0c27a; font-size: 28px; margin-top: 20px; text-align: center; }
-        
-        .ad-box { margin: 10px 0; min-height: 60px; background: #111; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-        .ad-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1f; padding: 5px; min-height: 60px; z-index: 100; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- تسجيل الدخول -->
     <div id="authSection">
         <h1>🎰 يانصيب iChansy</h1>
         <div class="card">
@@ -50,24 +46,20 @@
             <input type="text" id="phoneInput" placeholder="📱 رقم الهاتف">
             <input type="password" id="passwordInput" placeholder="🔒 كلمة المرور">
             <button onclick="login()">🔑 دخول</button>
-            <button onclick="register()" class="btn-blue">📝 تسجيل جديد</button>
+            <button onclick="register()" style="background:#4a6fa5;">📝 تسجيل جديد</button>
         </div>
     </div>
 
-    <!-- التطبيق الرئيسي -->
     <div id="mainSection" class="hidden">
         <h1>🎰 يانصيب iChansy</h1>
         
-        <!-- إعلان علوي -->
         <div class="ad-box" id="adTop"></div>
         
-        <!-- بطاقاتي -->
         <div class="card">
             <div class="info">💰 رصيدي: <span id="balance">0</span> ل.س</div>
             <div class="info">🎫 بطاقاتي: <span id="myTickets"></span></div>
         </div>
         
-        <!-- الجائزة والعداد -->
         <div class="jackpot-box">
             🏆 الجائزة الكبرى: <span id="expectedJackpot">0</span> ل.س
         </div>
@@ -77,7 +69,6 @@
         <button onclick="buyTicket()" class="btn-gold">🛒 شراء بطاقة (10,000 ل.س)</button>
         <button onclick="logout()" style="background:#555;">🚪 تسجيل خروج</button>
         
-        <!-- إعلان وسطي -->
         <div class="ad-box" id="adMid"></div>
         
         <a href="/games" style="display:block; background:linear-gradient(45deg,#ff9800,#e65100); color:#fff; padding:14px; border-radius:25px; text-align:center; margin:10px 0; font-weight:bold; text-decoration:none; font-size:18px;">🎰 ألعاب الكازينو</a>
@@ -86,7 +77,7 @@
             <h2>📎 إيداع</h2>
             <input type="file" id="receiptFile" accept="image/*">
             <input type="number" id="depositAmount" placeholder="💰 المبلغ" value="50000">
-            <button onclick="submitDeposit()" class="btn-green">📤 إرسال</button>
+            <button onclick="submitDeposit()" style="background:#2e7d32;">📤 إرسال</button>
         </div>
         
         <div class="card">
@@ -103,10 +94,8 @@
     </div>
 </div>
 
-<!-- إعلان سفلي -->
 <div class="ad-bottom" id="adBottom"></div>
 
-<!-- عجلة السحب -->
 <div id="wheelOverlay" class="wheel-overlay hidden">
     <div class="wheel-container">
         <div class="wheel-pointer">▼</div>
@@ -116,26 +105,14 @@
 </div>
 
 <script>
-    // ✅ تحميل الإعلانات بشكل صحيح
+    // ========== تحميل الإعلانات ==========
     function loadAds() {
-        const adScripts = [
-            { key: '4c94b3494e679d2ca0fb7acdf61e6aba', src: 'https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js' },
-            { src: 'https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js' }
-        ];
+        const adCode1 = `<script>atOptions = {'key' : '4c94b3494e679d2ca0fb7acdf61e6aba','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};<\/script><script src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"><\/script>`;
+        const adCode2 = `<script src="https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js"><\/script>`;
         
         ['adTop', 'adMid', 'adBottom'].forEach(id => {
             const el = document.getElementById(id);
-            if (!el) return;
-            adScripts.forEach(ad => {
-                if (ad.key) {
-                    const s1 = document.createElement('script');
-                    s1.textContent = `atOptions = {"key" : "${ad.key}", "format" : "iframe", "height" : 50, "width" : 320, "params" : {}};`;
-                    el.appendChild(s1);
-                }
-                const s2 = document.createElement('script');
-                s2.src = ad.src;
-                el.appendChild(s2);
-            });
+            if (el) el.innerHTML = adCode1 + adCode2;
         });
     }
     loadAds();
@@ -150,7 +127,7 @@
         return await res.json();
     }
 
-    // عجلة السحب
+    // ========== عجلة السحب ==========
     let wheelAngle = 0, wheelAnimId = null;
     
     function drawWheel(segments, winnerNum) {
@@ -177,13 +154,12 @@
             ctx.translate(cx, cy);
             ctx.rotate(startAngle + Math.PI / segments);
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 16px Tahoma';
+            ctx.font = 'bold 14px Tahoma';
             ctx.textAlign = 'center';
             ctx.fillText(i + 1, r * 0.65, 6);
             ctx.restore();
         }
         
-        // حساب الزاوية للفائز
         const segAngle = 360 / segments;
         const targetAngle = 360 - (winnerNum * segAngle + segAngle / 2);
         return 360 * 5 + targetAngle;
@@ -221,7 +197,7 @@
         }, 5000);
     }
 
-    // التطبيق
+    // ========== التطبيق ==========
     async function refresh() {
         const d = await api('/api/state','POST');
         if(d.logged_in) {
@@ -235,9 +211,8 @@
             const rem = d.seconds_remaining;
             document.getElementById('drawTimer').textContent = `⏳ ${Math.floor(rem/60)}:${(rem%60).toString().padStart(2,'0')}`;
             
-            // عجلة السحب
-            if (d.spin_active && d.spin_winner_number > 0) {
-                showSpinWheel(d.spin_winner_number);
+            if (d.draw_active && d.draw_winner) {
+                showSpinWheel(parseInt(d.draw_winner));
             }
             
             loadMyRequests();
@@ -282,12 +257,12 @@
     function logout() { localStorage.removeItem('token'); location.reload(); }
 
     function buyTicket() {
-        const ad = confirm('📢 شاهد الإعلان ثم اضغط موافق');
-        if(!ad) return;
-        api('/api/buy','POST',{}).then(d => {
-            alert(d.message || d.error);
-            refresh();
-        });
+        if (confirm('📢 شاهد الإعلان ثم اضغط موافق للمتابعة')) {
+            api('/api/buy','POST',{}).then(d => {
+                alert(d.message || d.error);
+                refresh();
+            });
+        }
     }
 
     function submitDeposit() {
