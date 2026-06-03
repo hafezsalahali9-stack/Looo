@@ -1,75 +1,30 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة الإدارة - يانصيب iChansy</title>
-    <style>
-        body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 15px; }
-        h1 { color: #f0c27a; text-align: center; }
-        .card { background: #0f3460; padding: 15px; border-radius: 12px; margin: 10px 0; }
-        .card img { max-width: 100%; max-height: 250px; border-radius: 8px; display: block; }
-        button { background: #2e7d32; color: white; border: none; padding: 12px; border-radius: 25px; width: 100%; margin: 5px 0; cursor: pointer; font-size: 16px; }
-        .btn-red { background: #c62828; }
-        .btn-blue { background: #1565c0; }
-    </style>
+<html>
+<head><meta charset="UTF-8"><title>دخول الإدارة</title>
+<style>
+    body { background: #0a0f1f; color: white; font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    input, button { padding: 12px; margin: 10px; border-radius: 20px; border: none; width: 250px; }
+    button { background: #e94560; color: white; cursor: pointer; }
+</style>
 </head>
 <body>
-    <h1>🔑 لوحة الإدارة</h1>
-    <button class="btn-blue" onclick="loadAll()">🔄 تحديث</button>
-
-    <h2>📥 طلبات الإيداع</h2>
-    <div id="deposits"></div>
-    <button onclick="approve('/admin/approve-deposits')">✅ تأكيد جميع الإيداعات</button>
-
-    <h2>📤 طلبات السحب</h2>
-    <div id="withdrawals"></div>
-    <button onclick="approve('/admin/approve-withdrawals')">✅ تأكيد جميع السحوبات</button>
-
-    <button class="btn-red" onclick="resetUsers()">⚠️ تصفير جميع الحسابات</button>
-
-    <p style="text-align:center; margin-top:20px;"><a href="/" style="color:#4a6fa5;">العودة للتطبيق</a></p>
-
-    <script>
-        async function api(url, method = 'GET', body = null) {
-            const opts = { method, headers: { 'Content-Type': 'application/json' } };
-            if (body) opts.body = JSON.stringify(body);
-            const res = await fetch(url, opts);
-            return await res.json();
-        }
-
-        async function loadAll() {
-            const deps = await api('/api/admin/deposits');
-            document.getElementById('deposits').innerHTML = deps.length === 0
-                ? '<p>لا توجد طلبات</p>'
-                : deps.map(d => `<div class="card">
-                    💰 ${d.amount} ل.س - ${d.timestamp} - <strong>${d.status}</strong>
-                    ${d.image ? `<img src="${d.image}" alt="إيصال">` : ''}
-                </div>`).join('');
-
-            const wits = await api('/api/admin/withdrawals');
-            document.getElementById('withdrawals').innerHTML = wits.length === 0
-                ? '<p>لا توجد طلبات</p>'
-                : wits.map(w => `<div class="card">
-                    💸 ${w.amount} ل.س إلى ${w.account} - ${w.timestamp} - <strong>${w.status}</strong>
-                </div>`).join('');
-        }
-
-        async function approve(url) {
-            if (!confirm('تأكيد العملية؟')) return;
-            const d = await api(url, 'POST');
-            alert(d.message);
-            loadAll();
-        }
-
-        async function resetUsers() {
-            const pw = prompt('أدخل كلمة المرور لتصفير الحسابات:');
-            if (!pw) return;
-            const d = await api('/api/admin/reset_users', 'POST', { password: pw });
-            alert(d.message || d.error);
-            loadAll();
-        }
-
-        loadAll();
-    </script>
+<div style="text-align:center;">
+    <h2>🔑 دخول لوحة الإدارة</h2>
+    <input type="password" id="pass" placeholder="كلمة المرور">
+    <button onclick="login()">دخول</button>
+    <p id="msg"></p>
+</div>
+<script>
+async function login() {
+    const res = await fetch('/admin/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({password: document.getElementById('pass').value})
+    });
+    const data = await res.json();
+    if(data.success) location.reload();
+    else document.getElementById('msg').innerHTML = '❌ ' + (data.error||'خطأ');
+}
+</script>
 </body>
 </html>
