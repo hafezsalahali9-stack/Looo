@@ -105,7 +105,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/admin')
-def admin():
+def admin_page():
     return render_template('admin.html')
 
 @app.route('/api/state', methods=['POST'])
@@ -166,6 +166,11 @@ def login():
     db.close()
     return jsonify({'message': 'تم الدخول', 'token': token})
 
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)
+    return jsonify({'message': 'تم الخروج'})
+
 @app.route('/api/buy', methods=['POST'])
 def buy():
     data = request.get_json()
@@ -186,20 +191,6 @@ def buy():
     ss('ticket_counter', str(ticket_counter))
     db.close()
     return jsonify({'message': f'تم شراء البطاقة رقم {ticket_number}', 'ticket_number': ticket_number})
-
-@app.route('/api/spin', methods=['POST'])
-def spin():
-    data = request.get_json()
-    token = data.get('token', '') if data else ''
-    user = get_user_by_token(token)
-    if not user: return jsonify({'error': 'سجل الدخول'})
-    db = get_db()
-    prizes = [10, 15, 20, 25, 30, 40, 50, 75, 100]
-    prize = random.choice(prizes)
-    db.execute('UPDATE users SET free_balance=free_balance+? WHERE id=?', (prize, user['id']))
-    db.commit()
-    db.close()
-    return jsonify({'prize': prize})
 
 @app.route('/api/deposit', methods=['POST'])
 def deposit():
@@ -249,6 +240,42 @@ def my_requests():
         'deposits': [{'amount': d['amount'], 'timestamp': d['timestamp'], 'status': d['status']} for d in deposits],
         'withdrawals': [{'amount': w['amount'], 'account': w['account'], 'timestamp': w['timestamp'], 'status': w['status']} for w in withdrawals]
     })
+
+@app.route('/api/admin/deposits')
+def admin_deposits():
+    db = get_db()
+    rows = db.execute('SELECT * FROM deposits ORDER BY id DESC').fetchall()
+    db.close()
+    return jsonify([{'id': r['id'], 'amount': r['amount'], 'image': r['image'], 'timestamp': r['timestamp'], 'status': r['status']} for r in rows])
+
+@app.route('/api/admin/withdrawals')
+def admin_withdrawals():
+    db = get_db()
+    rows = db.execute('SELECT * FROM withdrawals ORDER BY id DESC').fetchall()
+    db.close()
+    return jsonify([{'id': r['id'], 'amount': r['amount'], 'account': r['account'], 'timestamp': r['timestamp'], 'status': r['status']} for r in rows])
+
+@app.route('/admin/approve-deposits', methods=['GET', 'POST'])
+def approve_deposits():
+    db = get_db()
+    for r in db.execute('SELECT * FROM deposits WHERE status="معلق"').fetchall():
+        db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (r['amount'], r['user_id']))
+        db.execute('UPDATE deposits SET status = "مؤكد" WHERE id = ?', (r['id'],))
+    db.commit()
+    db.close()
+    return jsonify({'message': 'تم تأكيد الإيداعات'})
+
+@app.route('/admin/approve-withdrawals', methods=['GET', 'POST'])
+def approve_withdrawals():
+    db = get_db()
+    for r in db.execute('SELECT * FROM withdrawals WHERE status="معلق"').fetchall():
+        u = db.execute('SELECT balance FROM users WHERE id = ?', (r['user_id'],)).fetchone()
+        if u and u['balance'] >= r['amount']:
+            db.execute('UPDATE users SET balance = balance - ? WHERE id = ?', (r['amount'], r['user_id']))
+            db.execute('UPDATE withdrawals SET status = "مؤكد" WHERE id = ?', (r['id'],))
+    db.commit()
+    db.close()
+    return jsonify({'message': 'تمت معالجة السحوبات'})
 
 @app.route('/api/admin/reset_users', methods=['POST'])
 def reset_users():
