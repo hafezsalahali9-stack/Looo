@@ -2,7 +2,7 @@ import os, hashlib, time, random, string, threading, sqlite3
 from flask import Flask, render_template, request, jsonify, session, redirect
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'fallback-secret-key')
+app.secret_key = os.environ.get('SECRET_KEY', 'iChansy2024Secret!')
 DATABASE = '/tmp/lottery.db'
 TICKET_PRICE = 10000
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
@@ -54,6 +54,9 @@ def init_db():
         INSERT OR IGNORE INTO state (key, value) VALUES ('ticket_counter', '0');
         INSERT OR IGNORE INTO state (key, value) VALUES ('last_draw', '0');
         INSERT OR IGNORE INTO state (key, value) VALUES ('current_round', '1');
+        INSERT OR IGNORE INTO state (key, value) VALUES ('spin_active', '0');
+        INSERT OR IGNORE INTO state (key, value) VALUES ('spin_winner_id', '');
+        INSERT OR IGNORE INTO state (key, value) VALUES ('spin_winner_number', '0');
     ''')
     db.commit()
     db.close()
@@ -80,9 +83,10 @@ def get_user_by_token(token):
     db.close()
     return u
 
+# نظام السحب مع مؤثرات بصرية
 def draw_scheduler():
     while True:
-        time.sleep(10)
+        time.sleep(5)
         db = get_db()
         last_draw = float(gs('last_draw') or 0)
         now = time.time()
@@ -93,10 +97,20 @@ def draw_scheduler():
                 total_value = len(tickets) * TICKET_PRICE
                 jackpot = int(total_value * 0.75)
                 winner_ticket = random.choice(tickets)
+                
+                # تفعيل وضع السحب (العجلة تدور)
+                ss('spin_active', '1')
+                ss('spin_winner_id', str(winner_ticket['user_id']))
+                ss('spin_winner_number', str(winner_ticket['ticket_number']))
+                
+                # إضافة الجائزة بعد 15 ثانية (مدة دوران العجلة)
+                time.sleep(15)
+                
                 db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (jackpot, winner_ticket['user_id']))
                 db.execute('UPDATE tickets SET round_id = ? WHERE round_id = 0', (current_round,))
                 ss('last_draw', str(now))
                 ss('current_round', str(current_round + 1))
+                ss('spin_active', '0')
                 db.commit()
             else:
                 ss('last_draw', str(now))
@@ -112,26 +126,63 @@ def index():
 def games():
     return render_template('games.html')
 
-# --- لوحة الإدارة ---
-@app.route('/admin', methods=['GET', 'POST'])
+# لوحة إدارة بسيطة
+@app.route('/admin')
 def admin_panel():
-    if request.method == 'POST':
-        password = request.form.get('password', '')
-        if password == ADMIN_PASSWORD:
-            session['admin'] = True
-            return redirect('/admin')
-        else:
-            return render_template('admin_login.html', error='كلمة مرور خاطئة')
     if not session.get('admin'):
-        return render_template('admin_login.html')
-    return render_template('admin.html')
+        return '<form method="POST"><input name="pass" type="password" placeholder="كلمة المرور"><button>دخول</button></form>'
+    db = get_db()
+    deps = db.execute('SELECT * FROM deposits ORDER BY id DESC LIMIT 20').fetchall()
+    wits = db.execute('SELECT * FROM withdrawals ORDER BY id DESC LIMIT 20').fetchall()
+    db.close()
+    html = '<h1>لوحة الإدارة</h1><a href="/admin/logout">خروج</a>'
+    html += '<h2>الإيداعات</h2>'
+    for d in deps:
+        html += f'<div style="background:#1a2745;padding:10px;margin:5px;">💰 {d["amount"]} ل.س - {d["status"]} <a href="/admin/approve-deposit/{d["id"]}">تأكيد</a></div>'
+    html += '<h2>السحوبات</h2>'
+    for w in wits:
+        html += f'<div style="background:#1a2745;padding:10px;margin:5px;">💸 {w["amount"]} ل.س إلى {w["account"]} - {w["status"]} <a href="/admin/approve-withdrawal/{w["id"]}">تأكيد</a></div>'
+    return html
+
+@app.route('/admin', methods=['POST'])
+def admin_login():
+    if request.form.get('pass') == ADMIN_PASSWORD:
+        session['admin'] = True
+        return redirect('/admin')
+    return 'كلمة مرور خاطئة'
 
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin', None)
     return redirect('/admin')
 
-# --- API ---
+@app.route('/admin/approve-deposit/<int:did>')
+def approve_deposit(did):
+    if not session.get('admin'): return redirect('/admin')
+    db = get_db()
+    d = db.execute('SELECT * FROM deposits WHERE id=?', (did,)).fetchone()
+    if d and d['status'] == 'معلق':
+        db.execute('UPDATE users SET balance=balance+? WHERE id=?', (d['amount'], d['user_id']))
+        db.execute('UPDATE deposits SET status="مؤكد" WHERE id=?', (did,))
+        db.commit()
+    db.close()
+    return redirect('/admin')
+
+@app.route('/admin/approve-withdrawal/<int:wid>')
+def approve_withdrawal(wid):
+    if not session.get('admin'): return redirect('/admin')
+    db = get_db()
+    w = db.execute('SELECT * FROM withdrawals WHERE id=?', (wid,)).fetchone()
+    if w and w['status'] == 'معلق':
+        u = db.execute('SELECT balance FROM users WHERE id=?', (w['user_id'],)).fetchone()
+        if u and u['balance'] >= w['amount']:
+            db.execute('UPDATE users SET balance=balance-? WHERE id=?', (w['amount'], w['user_id']))
+            db.execute('UPDATE withdrawals SET status="مؤكد" WHERE id=?', (wid,))
+            db.commit()
+    db.close()
+    return redirect('/admin')
+
+# API
 @app.route('/api/state', methods=['POST'])
 def api_state():
     data = request.get_json()
@@ -142,16 +193,30 @@ def api_state():
     db = get_db()
     ticket_count = db.execute('SELECT COUNT(*) as c FROM tickets WHERE round_id=0').fetchone()['c']
     expected_jackpot = int(ticket_count * TICKET_PRICE * 0.75)
+    
+    # حالة العجلة الدوارة
+    spin_active = gs('spin_active') == '1'
+    spin_winner_number = int(gs('spin_winner_number') or 0)
+    spin_winner_id = gs('spin_winner_id')
+    
     db.close()
+    
+    result = {
+        'logged_in': user is not None,
+        'ticket_count': ticket_count,
+        'expected_jackpot': expected_jackpot,
+        'seconds_remaining': seconds_remaining,
+        'spin_active': spin_active,
+        'spin_winner_number': spin_winner_number,
+        'spin_winner_id': spin_winner_id
+    }
     if user:
-        return jsonify({
-            'logged_in': True,
-            'user': {'balance': user['balance'], 'free_balance': user['free_balance']},
-            'ticket_count': ticket_count,
-            'expected_jackpot': expected_jackpot,
-            'seconds_remaining': seconds_remaining
-        })
-    return jsonify({'logged_in': False, 'ticket_count': ticket_count, 'expected_jackpot': expected_jackpot, 'seconds_remaining': seconds_remaining})
+        result['user'] = {
+            'balance': user['balance'],
+            'free_balance': user['free_balance'],
+            'last_spin_time': user['last_spin_time']
+        }
+    return jsonify(result)
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -195,7 +260,7 @@ def buy():
     db.commit()
     ss('ticket_counter', str(counter))
     db.close()
-    return jsonify({'message':f'تم شراء البطاقة رقم {counter}','ticket_number':counter})
+    return jsonify({'message':f'بطاقة #{counter}','ticket_number':counter})
 
 @app.route('/api/my_tickets', methods=['POST'])
 def my_tickets():
@@ -246,31 +311,6 @@ def my_requests():
         'withdrawals':[{'amount':w['amount'],'account':w['account'],'timestamp':w['timestamp'],'status':w['status']} for w in wits]
     })
 
-# إدارة (محمية)
-@app.route('/admin/approve-deposits')
-def approve_deposits():
-    if not session.get('admin'): return redirect('/admin')
-    db = get_db()
-    for d in db.execute('SELECT * FROM deposits WHERE status="معلق"').fetchall():
-        db.execute('UPDATE users SET balance=balance+? WHERE id=?', (d['amount'], d['user_id']))
-        db.execute('UPDATE deposits SET status="مؤكد" WHERE id=?', (d['id'],))
-    db.commit()
-    db.close()
-    return jsonify({'message':'تم تأكيد الإيداعات'})
-
-@app.route('/admin/approve-withdrawals')
-def approve_withdrawals():
-    if not session.get('admin'): return redirect('/admin')
-    db = get_db()
-    for w in db.execute('SELECT * FROM withdrawals WHERE status="معلق"').fetchall():
-        u = db.execute('SELECT balance FROM users WHERE id=?', (w['user_id'],)).fetchone()
-        if u and u['balance'] >= w['amount']:
-            db.execute('UPDATE users SET balance=balance-? WHERE id=?', (w['amount'], w['user_id']))
-            db.execute('UPDATE withdrawals SET status="مؤكد" WHERE id=?', (w['id'],))
-    db.commit()
-    db.close()
-    return jsonify({'message':'تمت معالجة السحوبات'})
-
 # الألعاب
 @app.route('/api/slots', methods=['POST'])
 def slots():
@@ -291,89 +331,6 @@ def slots():
     bal = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
     db.close()
     return jsonify({'result':res,'win':win,'balance':bal})
-
-@app.route('/api/roulette', methods=['POST'])
-def roulette():
-    user = get_user_by_token(request.get_json().get('token',''))
-    if not user: return jsonify({'error':'سجل الدخول'})
-    cost = 1000
-    bet = request.get_json().get('bet')
-    db = get_db()
-    if user['balance'] < cost: db.close(); return jsonify({'error':'رصيد غير كاف'})
-    db.execute('UPDATE users SET balance=balance-? WHERE id=?', (cost, user['id']))
-    db.commit()
-    outcomes = ['red']*18 + ['black']*18 + ['green']*2
-    result = random.choice(outcomes)
-    win = 0
-    if bet == result:
-        if bet == 'green': win = cost*14
-        else: win = cost*2
-    if win: db.execute('UPDATE users SET balance=balance+? WHERE id=?', (win, user['id']))
-    db.commit()
-    bal = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'result':result,'win':win,'balance':bal})
-
-@app.route('/api/blackjack', methods=['POST'])
-def blackjack():
-    user = get_user_by_token(request.get_json().get('token',''))
-    if not user: return jsonify({'error':'سجل الدخول'})
-    cost = 2000
-    db = get_db()
-    if user['balance'] < cost: db.close(); return jsonify({'error':'رصيد غير كاف'})
-    db.execute('UPDATE users SET balance=balance-? WHERE id=?', (cost, user['id']))
-    db.commit()
-    player = random.randint(17,21)
-    dealer = random.randint(17,21)
-    win = 0
-    if player>21: result='lose'
-    elif dealer>21 or player>dealer: result='win'; win=cost*2
-    elif player==dealer: result='push'; win=cost
-    else: result='lose'
-    if win: db.execute('UPDATE users SET balance=balance+? WHERE id=?', (win, user['id']))
-    db.commit()
-    bal = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'player':player,'dealer':dealer,'result':result,'win':win,'balance':bal})
-
-@app.route('/api/dice', methods=['POST'])
-def dice():
-    user = get_user_by_token(request.get_json().get('token',''))
-    if not user: return jsonify({'error':'سجل الدخول'})
-    cost = 800
-    choice = int(request.get_json().get('choice',1))
-    db = get_db()
-    if user['balance'] < cost: db.close(); return jsonify({'error':'رصيد غير كاف'})
-    db.execute('UPDATE users SET balance=balance-? WHERE id=?', (cost, user['id']))
-    db.commit()
-    roll = random.randint(1,6)
-    win = 0
-    if roll == choice: win = cost*5
-    if win: db.execute('UPDATE users SET balance=balance+? WHERE id=?', (win, user['id']))
-    db.commit()
-    bal = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'dice':roll,'win':win,'balance':bal})
-
-@app.route('/api/poker', methods=['POST'])
-def poker():
-    user = get_user_by_token(request.get_json().get('token',''))
-    if not user: return jsonify({'error':'سجل الدخول'})
-    cost = 5000
-    db = get_db()
-    if user['balance'] < cost: db.close(); return jsonify({'error':'رصيد غير كاف'})
-    db.execute('UPDATE users SET balance=balance-? WHERE id=?', (cost, user['id']))
-    db.commit()
-    p = random.randint(1,10)
-    d = random.randint(1,10)
-    win = 0
-    if p>d: win=cost*2
-    elif p==d: win=cost
-    if win: db.execute('UPDATE users SET balance=balance+? WHERE id=?', (win, user['id']))
-    db.commit()
-    bal = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'player':p,'dealer':d,'win':win,'balance':bal})
 
 init_db()
 
