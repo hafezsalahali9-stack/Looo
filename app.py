@@ -4,12 +4,6 @@ import sqlite3, random, time, threading, string
 app = Flask(__name__)
 DATABASE = '/tmp/lottery.db'
 TICKET_PRICE = 10000
-JACKPOT_PERCENT = 0.75
-SLOT_COST = 500
-ROULETTE_COST = 1000
-BLACKJACK_COST = 2000
-POKER_COST = 5000
-DICE_COST = 800
 
 def get_db():
     db = sqlite3.connect(DATABASE)
@@ -25,8 +19,7 @@ def init_db():
             password TEXT NOT NULL,
             token TEXT,
             balance INTEGER DEFAULT 0,
-            free_balance INTEGER DEFAULT 0,
-            last_spin_time REAL DEFAULT 0
+            free_balance INTEGER DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,7 +85,7 @@ def draw_scheduler():
             tickets = db.execute('SELECT * FROM tickets WHERE round_id=0').fetchall()
             if tickets:
                 total_value = len(tickets) * TICKET_PRICE
-                jackpot = int(total_value * JACKPOT_PERCENT)
+                jackpot = int(total_value * 0.75)
                 winner_ticket = random.choice(tickets)
                 db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (jackpot, winner_ticket['user_id']))
                 db.execute('UPDATE tickets SET round_id = ? WHERE round_id = 0', (current_round,))
@@ -115,10 +108,6 @@ def index():
 def admin():
     return render_template('admin.html')
 
-@app.route('/games')
-def games():
-    return render_template('games.html')
-
 @app.route('/api/state', methods=['POST'])
 def api_state():
     data = request.get_json()
@@ -131,23 +120,19 @@ def api_state():
     db = get_db()
     ticket_count = db.execute('SELECT COUNT(*) as c FROM tickets WHERE round_id=0').fetchone()['c']
     total_value = ticket_count * TICKET_PRICE
-    expected_jackpot = int(total_value * JACKPOT_PERCENT)
+    expected_jackpot = int(total_value * 0.75)
     db.close()
     state = {
         'logged_in': user is not None,
         'user': None,
         'ticket_count': ticket_count,
         'expected_jackpot': expected_jackpot,
-        'seconds_remaining': seconds_remaining,
-        'last_winner_id': gs('last_winner_id'),
-        'last_jackpot': gs('last_jackpot')
+        'seconds_remaining': seconds_remaining
     }
     if user:
         state['user'] = {
-            'id': user['id'],
             'balance': user['balance'],
-            'free_balance': user['free_balance'],
-            'last_spin_time': user['last_spin_time']
+            'free_balance': user['free_balance']
         }
     return jsonify(state)
 
@@ -209,16 +194,9 @@ def spin():
     user = get_user_by_token(token)
     if not user: return jsonify({'error': 'سجل الدخول'})
     db = get_db()
-    u = db.execute('SELECT * FROM users WHERE id=?', (user['id'],)).fetchone()
-    now = time.time()
-    if u['last_spin_time'] and (now - u['last_spin_time']) < 60:
-        remain = int(60 - (now - u['last_spin_time']))
-        db.close()
-        return jsonify({'error': f'انتظر {remain} ثانية'})
     prizes = [10, 15, 20, 25, 30, 40, 50, 75, 100]
     prize = random.choice(prizes)
-    db.execute('UPDATE users SET free_balance=free_balance+?, last_spin_time=? WHERE id=?',
-               (prize, now, user['id']))
+    db.execute('UPDATE users SET free_balance=free_balance+? WHERE id=?', (prize, user['id']))
     db.commit()
     db.close()
     return jsonify({'prize': prize})
@@ -288,147 +266,6 @@ def reset_users():
     db.commit()
     db.close()
     return jsonify({'message': 'تم حذف جميع المستخدمين والتذاكر بنجاح'})
-
-@app.route('/api/slots', methods=['POST'])
-def slots():
-    data = request.get_json()
-    token = data.get('token', '') if data else ''
-    user = get_user_by_token(token)
-    if not user: return jsonify({'error': 'سجل الدخول'})
-    db = get_db()
-    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < SLOT_COST:
-        db.close()
-        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {SLOT_COST} ل.س)'})
-    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (SLOT_COST, user['id']))
-    db.commit()
-    symbols = ['🍒','🍋','🍊','🍇','💎','⭐']
-    result = [random.choice(symbols) for _ in range(3)]
-    win = 0
-    if result[0]==result[1]==result[2]:
-        win = SLOT_COST * 10
-    elif result[0]==result[1] or result[1]==result[2] or result[0]==result[2]:
-        win = SLOT_COST * 2
-    if win > 0:
-        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
-        db.commit()
-    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'result': result, 'win': win, 'balance': new_balance})
-
-@app.route('/api/roulette', methods=['POST'])
-def roulette():
-    data = request.get_json()
-    token = data.get('token', '') if data else ''
-    user = get_user_by_token(token)
-    if not user: return jsonify({'error': 'سجل الدخول'})
-    bet = data.get('bet')
-    db = get_db()
-    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < ROULETTE_COST:
-        db.close()
-        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {ROULETTE_COST} ل.س)'})
-    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (ROULETTE_COST, user['id']))
-    db.commit()
-    outcomes = ['red']*18 + ['black']*18 + ['green']*2
-    result = random.choice(outcomes)
-    win = 0
-    if bet == result:
-        if bet == 'green':
-            win = ROULETTE_COST * 14
-        else:
-            win = ROULETTE_COST * 2
-    if win > 0:
-        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
-        db.commit()
-    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'result': result, 'win': win, 'balance': new_balance})
-
-@app.route('/api/blackjack', methods=['POST'])
-def blackjack():
-    data = request.get_json()
-    token = data.get('token', '') if data else ''
-    user = get_user_by_token(token)
-    if not user: return jsonify({'error': 'سجل الدخول'})
-    db = get_db()
-    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < BLACKJACK_COST:
-        db.close()
-        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {BLACKJACK_COST} ل.س)'})
-    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (BLACKJACK_COST, user['id']))
-    db.commit()
-    player = random.randint(17, 21)
-    dealer = random.randint(17, 21)
-    win = 0
-    if player > 21:
-        result = 'lose'
-    elif dealer > 21 or player > dealer:
-        result = 'win'
-        win = BLACKJACK_COST * 2
-    elif player == dealer:
-        result = 'push'
-        win = BLACKJACK_COST
-    else:
-        result = 'lose'
-    if win > 0:
-        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
-        db.commit()
-    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'player': player, 'dealer': dealer, 'result': result, 'win': win, 'balance': new_balance})
-
-@app.route('/api/dice', methods=['POST'])
-def dice():
-    data = request.get_json()
-    token = data.get('token', '') if data else ''
-    user = get_user_by_token(token)
-    if not user: return jsonify({'error': 'سجل الدخول'})
-    db = get_db()
-    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < DICE_COST:
-        db.close()
-        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {DICE_COST} ل.س)'})
-    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (DICE_COST, user['id']))
-    db.commit()
-    choice = int(data.get('choice', 1))
-    dice_roll = random.randint(1,6)
-    win = 0
-    if dice_roll == choice:
-        win = DICE_COST * 5
-    if win > 0:
-        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
-        db.commit()
-    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'dice': dice_roll, 'win': win, 'balance': new_balance})
-
-@app.route('/api/poker', methods=['POST'])
-def poker():
-    data = request.get_json()
-    token = data.get('token', '') if data else ''
-    user = get_user_by_token(token)
-    if not user: return jsonify({'error': 'سجل الدخول'})
-    db = get_db()
-    u = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()
-    if u['balance'] < POKER_COST:
-        db.close()
-        return jsonify({'error': f'رصيد غير كافٍ (تحتاج {POKER_COST} ل.س)'})
-    db.execute('UPDATE users SET balance = balance - ? WHERE id=?', (POKER_COST, user['id']))
-    db.commit()
-    player_hand = random.randint(1,10)
-    dealer_hand = random.randint(1,10)
-    win = 0
-    if player_hand > dealer_hand:
-        win = POKER_COST * 2
-    elif player_hand == dealer_hand:
-        win = POKER_COST
-    if win > 0:
-        db.execute('UPDATE users SET balance = balance + ? WHERE id=?', (win, user['id']))
-        db.commit()
-    new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
-    db.close()
-    return jsonify({'player': player_hand, 'dealer': dealer_hand, 'win': win, 'balance': new_balance})
 
 init_db()
 
