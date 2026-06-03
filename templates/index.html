@@ -86,17 +86,35 @@
 <div class="ad-bottom" id="ad4"></div>
 
 <script>
-    // إعدادات الإعلانات
-    const POPUNDER_SCRIPT = '<scr' + 'ipt src="https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js"></scr' + 'ipt>';
-    const BANNER_SCRIPT = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt>' +
-                           '<scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
+    // إعداد الإعلانات - طريقة آمنة لتحميل السكربتات
+    function injectScript(code, parent) {
+        const div = document.createElement('div');
+        div.innerHTML = code;
+        const scripts = div.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            if (oldScript.src) {
+                newScript.src = oldScript.src;
+            } else {
+                newScript.textContent = oldScript.textContent;
+            }
+            parent.appendChild(newScript);
+        });
+    }
+
+    const POPUNDER_CODE = '<scr' + 'ipt src="https://pl29623870.effectivecpmnetwork.com/a2/48/f5/a248f547e17b13e2f93e91b63e882358.js"></scr' + 'ipt>';
+    const BANNER_CODE = '<scr' + 'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr' + 'ipt><scr' + 'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr' + 'ipt>';
 
     function loadAd(elId) {
         const el = document.getElementById(elId);
         if (!el) return;
-        el.innerHTML = BANNER_SCRIPT;
+        injectScript(BANNER_CODE, el);
     }
-    loadAd('ad1'); loadAd('ad2'); loadAd('ad3'); loadAd('ad4');
+
+    loadAd('ad1');
+    loadAd('ad2');
+    loadAd('ad3');
+    loadAd('ad4');
 
     let token = localStorage.getItem('token') || '';
     let currentUser = null;
@@ -123,8 +141,9 @@
         document.body.appendChild(overlay);
 
         const adContainer = document.getElementById('popAdContainer');
-        // حقن إعلان Popunder
-        adContainer.innerHTML = POPUNDER_SCRIPT + '<div style="height:150px; display:flex; align-items:center; justify-content:center; color:#aaa;">إعلان قيد التحميل...</div>';
+        // إضافة إعلان Popunder + إعلان بانر داخل النافذة
+        injectScript(POPUNDER_CODE, adContainer);
+        injectScript(BANNER_CODE, adContainer);
 
         let sec = seconds;
         const cd = setInterval(() => {
@@ -191,24 +210,45 @@
     async function login() {
         const phone = document.getElementById('phoneInput').value.trim();
         const pwd = document.getElementById('passwordInput').value.trim();
-        if (!phone || !pwd) { document.getElementById('authMsg').innerHTML='<div class="msg err">املأ الحقول</div>'; return; }
+        if (!phone || !pwd) {
+            document.getElementById('authMsg').innerHTML = '<div class="msg err">املأ الحقول</div>';
+            return;
+        }
         const d = await api('/api/login', 'POST', { phone, password: pwd });
-        if (d.error) { document.getElementById('authMsg').innerHTML='<div class="msg err">'+d.error+'</div>'; }
-        else { token = d.token; localStorage.setItem('token', token); refresh(); }
+        if (d.error) {
+            document.getElementById('authMsg').innerHTML = '<div class="msg err">' + d.error + '</div>';
+        } else {
+            token = d.token;
+            localStorage.setItem('token', token);
+            refresh();
+        }
     }
 
     async function register() {
         const phone = document.getElementById('phoneInput').value.trim();
         const pwd = document.getElementById('passwordInput').value.trim();
-        if (!phone || !pwd) { document.getElementById('authMsg').innerHTML='<div class="msg err">املأ الحقول</div>'; return; }
+        if (!phone || !pwd) {
+            document.getElementById('authMsg').innerHTML = '<div class="msg err">املأ الحقول</div>';
+            return;
+        }
         const d = await api('/api/register', 'POST', { phone, password: pwd });
         if (d.error) {
-            if (d.error==='الرقم مسجل') document.getElementById('authMsg').innerHTML='<div class="msg err">⚠️ الرقم مسجل. استخدم زر <strong>دخول</strong></div>';
-            else document.getElementById('authMsg').innerHTML='<div class="msg err">'+d.error+'</div>';
-        } else { token = d.token; localStorage.setItem('token', token); refresh(); }
+            if (d.error === 'الرقم مسجل') {
+                document.getElementById('authMsg').innerHTML = '<div class="msg err">⚠️ الرقم مسجل. استخدم زر <strong>دخول</strong></div>';
+            } else {
+                document.getElementById('authMsg').innerHTML = '<div class="msg err">' + d.error + '</div>';
+            }
+        } else {
+            token = d.token;
+            localStorage.setItem('token', token);
+            refresh();
+        }
     }
 
-    function logout() { localStorage.removeItem('token'); location.reload(); }
+    function logout() {
+        localStorage.removeItem('token');
+        location.reload();
+    }
 
     function buyTicket() {
         showAdPopup('شاهد الإعلان لشراء البطاقة', 10, async () => {
