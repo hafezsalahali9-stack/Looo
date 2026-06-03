@@ -81,7 +81,6 @@ def get_user_by_token(token):
     db.close()
     return u
 
-# ====================== جدولة السحب كل ساعة ======================
 def draw_scheduler():
     while True:
         time.sleep(10)
@@ -108,7 +107,6 @@ def draw_scheduler():
 
 threading.Thread(target=draw_scheduler, daemon=True).start()
 
-# ====================== التوجيهات ======================
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -259,7 +257,38 @@ def withdraw():
     db.close()
     return jsonify({'message': 'تم إرسال طلب السحب للمراجعة'})
 
-# ====================== ألعاب الكازينو ======================
+@app.route('/api/my_requests', methods=['POST'])
+def my_requests():
+    data = request.get_json()
+    token = data.get('token', '') if data else ''
+    user = get_user_by_token(token)
+    if not user: return jsonify({'error': 'سجل الدخول'})
+    db = get_db()
+    deposits = db.execute('SELECT * FROM deposits WHERE user_id=? ORDER BY id DESC LIMIT 10', (user['id'],)).fetchall()
+    withdrawals = db.execute('SELECT * FROM withdrawals WHERE user_id=? ORDER BY id DESC LIMIT 10', (user['id'],)).fetchall()
+    db.close()
+    return jsonify({
+        'deposits': [{'amount': d['amount'], 'timestamp': d['timestamp'], 'status': d['status']} for d in deposits],
+        'withdrawals': [{'amount': w['amount'], 'account': w['account'], 'timestamp': w['timestamp'], 'status': w['status']} for w in withdrawals]
+    })
+
+@app.route('/api/admin/reset_users', methods=['POST'])
+def reset_users():
+    data = request.get_json()
+    if data.get('password') != 'reset123':
+        return jsonify({'error': 'كلمة المرور غير صحيحة'})
+    db = get_db()
+    db.execute('DELETE FROM users')
+    db.execute('DELETE FROM tickets')
+    db.execute('DELETE FROM deposits')
+    db.execute('DELETE FROM withdrawals')
+    db.execute("UPDATE state SET value='0' WHERE key='ticket_counter'")
+    db.execute("UPDATE state SET value='0' WHERE key='last_draw'")
+    db.execute("UPDATE state SET value='1' WHERE key='current_round'")
+    db.commit()
+    db.close()
+    return jsonify({'message': 'تم حذف جميع المستخدمين والتذاكر بنجاح'})
+
 @app.route('/api/slots', methods=['POST'])
 def slots():
     data = request.get_json()
@@ -400,24 +429,6 @@ def poker():
     new_balance = db.execute('SELECT balance FROM users WHERE id=?', (user['id'],)).fetchone()['balance']
     db.close()
     return jsonify({'player': player_hand, 'dealer': dealer_hand, 'win': win, 'balance': new_balance})
-
-# ====================== تصفير الحسابات ======================
-@app.route('/api/admin/reset_users', methods=['POST'])
-def reset_users():
-    data = request.get_json()
-    if data.get('password') != 'reset123':
-        return jsonify({'error': 'كلمة المرور غير صحيحة'})
-    db = get_db()
-    db.execute('DELETE FROM users')
-    db.execute('DELETE FROM tickets')
-    db.execute('DELETE FROM deposits')
-    db.execute('DELETE FROM withdrawals')
-    db.execute("UPDATE state SET value='0' WHERE key='ticket_counter'")
-    db.execute("UPDATE state SET value='0' WHERE key='last_draw'")
-    db.execute("UPDATE state SET value='1' WHERE key='current_round'")
-    db.commit()
-    db.close()
-    return jsonify({'message': 'تم حذف جميع المستخدمين والتذاكر بنجاح'})
 
 init_db()
 
