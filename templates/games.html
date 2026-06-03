@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ألعاب iChansy</title>
+    <meta charset="UTF-8"><title>ألعاب iChansy</title>
     <style>
         body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 10px; text-align: center; }
         h1 { color: #f0c27a; }
@@ -18,7 +16,6 @@
 <body>
 <h1>🎰 ألعاب iChansy</h1>
 <div class="ad-box" id="adTop"></div>
-
 <div>
     <div class="game-card" onclick="showGame('slots')"><span style="font-size:32px;">🎰</span><br>سلوتس</div>
     <div class="game-card" onclick="showGame('roulette')"><span style="font-size:32px;">🎡</span><br>روليت</div>
@@ -33,7 +30,6 @@
     <p id="slotsMsg"></p>
     <button onclick="playSlots()">لف (500 ل.س)</button>
 </div>
-
 <div id="rouletteArea" class="game-area">
     <h2>🎡 روليت</h2>
     <button onclick="playRoulette('red')" style="background:red;">أحمر</button>
@@ -41,19 +37,16 @@
     <button onclick="playRoulette('green')" style="background:green;">أخضر</button>
     <p id="rouletteMsg"></p>
 </div>
-
 <div id="blackjackArea" class="game-area">
     <h2>🃏 بلاك جاك</h2>
     <button onclick="playBlackjack()">لعب (2,000 ل.س)</button>
     <p id="blackjackMsg"></p>
 </div>
-
 <div id="diceArea" class="game-area">
     <h2>🎲 نرد</h2>
     <div id="diceBtns"></div>
     <p id="diceMsg"></p>
 </div>
-
 <div id="pokerArea" class="game-area">
     <h2>♠️ بوكر</h2>
     <button onclick="playPoker()">لعب (5,000 ل.س)</button>
@@ -66,16 +59,18 @@
 
 <script>
     const token = localStorage.getItem('token')||'';
-    function injectScript(code, parent) {
-        const d = document.createElement('div'); d.innerHTML = code;
-        d.querySelectorAll('script').forEach(s=>{
+    const BANNER = '<scr'+'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr'+'ipt><scr'+'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr'+'ipt>';
+    function loadAd(id) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        const div = document.createElement('div');
+        div.innerHTML = BANNER;
+        Array.from(div.querySelectorAll('script')).forEach(s=>{
             const ns = document.createElement('script');
             if(s.src) ns.src=s.src; else ns.textContent=s.textContent;
-            parent.appendChild(ns);
+            el.appendChild(ns);
         });
     }
-    const BANNER = '<scr'+'ipt>atOptions = {"key" : "4c94b3494e679d2ca0fb7acdf61e6aba","format" : "iframe","height" : 50,"width" : 320,"params" : {}};</scr'+'ipt><scr'+'ipt src="https://www.highperformanceformat.com/4c94b3494e679d2ca0fb7acdf61e6aba/invoke.js"></scr'+'ipt>';
-    function loadAd(id) { injectScript(BANNER, document.getElementById(id)); }
     loadAd('adTop'); loadAd('adMid'); loadAd('adFixed');
 
     async function api(url, body={}) {
@@ -102,25 +97,21 @@
         document.getElementById('r3').textContent=d.result[2];
         document.getElementById('slotsMsg').textContent = d.win>0?`ربحت ${d.win} ل.س!`:'حاول مرة أخرى';
     }
-
     async function playRoulette(bet) {
         const d = await api('/api/roulette',{bet});
         if(d.error) return alert(d.error);
         document.getElementById('rouletteMsg').textContent = `النتيجة: ${d.result} - ${d.win>0?'ربحت '+d.win+' ل.س':'خسرت'}`;
     }
-
     async function playBlackjack() {
         const d = await api('/api/blackjack');
         if(d.error) return alert(d.error);
         document.getElementById('blackjackMsg').textContent = `يدك: ${d.player} | الموزع: ${d.dealer} - ${d.win>0?'ربحت '+d.win+' ل.س':(d.result==='push'?'تعادل':'خسرت')}`;
     }
-
     async function playDice(choice) {
         const d = await api('/api/dice',{choice});
         if(d.error) return alert(d.error);
         document.getElementById('diceMsg').textContent = `النرد: ${d.dice} - ${d.win>0?'ربحت '+d.win+' ل.س':'خسرت'}`;
     }
-
     async function playPoker() {
         const d = await api('/api/poker');
         if(d.error) return alert(d.error);
