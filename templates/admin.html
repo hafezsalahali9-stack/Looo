@@ -5,18 +5,18 @@
     <style>
         body { font-family: Arial; background: #0a0f1f; color: #eee; padding: 15px; }
         h1 { color: #f0c27a; }
-        .stats { background: #e94560; padding: 10px; border-radius: 10px; margin: 10px 0; }
         .card { background: #0f3460; padding: 15px; border-radius: 12px; margin: 10px 0; }
-        .card img { max-width: 100%; max-height: 200px; border-radius: 8px; display: block; margin: 10px 0; }
+        .card img { max-width: 100%; max-height: 200px; border-radius: 8px; }
         button { background: #2e7d32; color: white; border: none; padding: 12px; border-radius: 25px; width: 100%; margin: 5px 0; cursor: pointer; }
         .btn-red { background: #c62828; }
-        .btn-blue { background: #1565c0; }
+        a { color: #aaa; }
     </style>
 </head>
 <body>
     <h1>🔑 لوحة الإدارة</h1>
-    <div class="stats" id="stats"></div>
-    <button class="btn-blue" onclick="loadAll()">🔄 تحديث</button>
+    <p><a href="/admin/logout">تسجيل خروج</a></p>
+    <div id="stats" style="background:#e94560;padding:10px;border-radius:10px;"></div>
+    <button onclick="loadAll()">🔄 تحديث</button>
 
     <h2>📥 الإيداعات</h2>
     <div id="deposits"></div>
@@ -26,30 +26,16 @@
     <div id="withdrawals"></div>
     <button onclick="approve('/admin/approve-withdrawals')">✅ تأكيد السحوبات</button>
 
-    <button class="btn-red" onclick="resetUsers()">⚠️ تصفير الحسابات</button>
-    <p><a href="/admin/logout" style="color:#aaa;">تسجيل خروج</a></p>
-
     <script>
-        async function api(url, m='GET', b=null) {
-            const o = {method:m, headers:{'Content-Type':'application/json'}};
-            if(b) o.body = JSON.stringify(b);
-            const r = await fetch(url, o);
-            return await r.json();
-        }
         async function loadAll() {
-            const stats = await api('/api/admin/stats');
-            document.getElementById('stats').innerHTML = `📥 إيداعات معلقة: ${stats.pending_deposits} | 📤 سحوبات معلقة: ${stats.pending_withdrawals}`;
-            const deps = await api('/api/admin/deposits');
-            document.getElementById('deposits').innerHTML = deps.length===0?'<p>لا توجد</p>':deps.map(d=>`<div class="card">💰 ${d.amount} ل.س - ${d.timestamp} - <strong>${d.status}</strong>${d.image?`<img src="${d.image}">`:''}</div>`).join('');
-            const wits = await api('/api/admin/withdrawals');
-            document.getElementById('withdrawals').innerHTML = wits.length===0?'<p>لا توجد</p>':wits.map(w=>`<div class="card">💸 ${w.amount} ل.س إلى ${w.account} - ${w.timestamp} - <strong>${w.status}</strong></div>`).join('');
+            const deps = await fetch('/api/admin/deposits').then(r=>r.json());
+            document.getElementById('stats').innerHTML = `📥 إيداعات معلقة: ${deps.filter(d=>d.status==='معلق').length}`;
+            document.getElementById('deposits').innerHTML = deps.map(d=>`<div class="card">💰 ${d.amount} ل.س - ${d.status} ${d.image?`<img src="${d.image}">`:''}</div>`).join('');
+            const wits = await fetch('/api/admin/withdrawals').then(r=>r.json());
+            document.getElementById('withdrawals').innerHTML = wits.map(w=>`<div class="card">💸 ${w.amount} ل.س إلى ${w.account} - ${w.status}</div>`).join('');
         }
-        async function approve(url) { if(confirm('تأكيد؟')) { await api(url,'POST'); loadAll(); } }
-        async function resetUsers() {
-            const pw = prompt('كلمة مرور المسؤول:');
-            if(!pw) return;
-            const r = await api('/api/admin/reset_users','POST',{password:pw});
-            alert(r.message||r.error);
+        async function approve(url) {
+            await fetch(url);
             loadAll();
         }
         loadAll();
